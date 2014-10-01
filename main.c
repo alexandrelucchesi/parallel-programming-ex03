@@ -42,13 +42,16 @@ int reduce(int my_rank, int comm_sz, unsigned int count, float nums[], float *su
         (*sum) += nums[i];
     }
 
+    if (comm_sz == 1)
+        return 0;
+
     // step: defines the current step;
     // i: controls the number of iterations;
     // j: receiver's process index;
     // k: whether the operation to be performed is
     //    MPI_Send() (positive) or MPI_Recv() (negative).
     int n_proc = comm_sz;
-    for (int finish = 0, step = 0; !finish; step++) {
+    for (int finish = 0, step = 0; n_proc > 1 && !finish; step++) {
         div_t res = div(n_proc, 2);
         int n_iter = res.rem == 0 ? n_proc : n_proc - 1;
         n_proc = res.quot + res.rem; // Number of 'active' processes.
@@ -61,8 +64,6 @@ int reduce(int my_rank, int comm_sz, unsigned int count, float nums[], float *su
                     MPI_Recv(&his_sum, 1, MPI_FLOAT, sender, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     (*sum) += his_sum;
                     printf("[Step %d] : my_rank %d - Receive from %d - his_sum is %.2f and *sum is %.2f\n", step, my_rank, sender, his_sum, *sum);
-                    if (n_iter == 2)
-                        finish = 1; // Last message exchange.
                     break;
                 } else { /* Send */
                     int receiver = j - pow(2, step);
@@ -135,6 +136,13 @@ int main(int argc, char *argv[]) {
 
 //    // Get input.
     get_data(my_rank, comm_sz, &my_count, &my_nums);
+//    if (my_rank == 3) {
+//        printf("\tmy_rank: %d\n\t\t", my_rank);
+//        for (int i = 0; i < my_count; i++) {
+//            printf("%.2f ", my_nums[i]);
+//        }
+//        printf("\n");
+//    }
 
     // Reduce.
     float sum;
