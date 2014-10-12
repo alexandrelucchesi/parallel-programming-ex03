@@ -16,12 +16,16 @@
 #include <mpi.h>
 
 
+//#define DEBUG
+
+
 typedef unsigned long long int ulli;
 
 
 void generate_floats(FILE* out, int count);
 int reduce(int my_rank, int comm_sz, unsigned int count, float nums[], float *sum);
 void get_data(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums);
+static void usage(int argc, char *argv[]);
 
 
 /**
@@ -39,7 +43,6 @@ void generate_floats(FILE* out, int count) {
 } /* generate_floats */
 
 
-// TODO: Optimize code!
 int reduce(int my_rank, int comm_sz, unsigned int count, float nums[], float *sum) {
 
     // Calculates given range.
@@ -68,12 +71,16 @@ int reduce(int my_rank, int comm_sz, unsigned int count, float nums[], float *su
                     float his_sum;
                     MPI_Recv(&his_sum, 1, MPI_FLOAT, sender, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     (*sum) += his_sum;
+#ifdef DEBUG
                     printf("[Step %d] : my_rank %d - Receive from %d - his_sum is %.2f and *sum is %.2f\n", step, my_rank, sender, his_sum, *sum);
+#endif
                     break;
                 } else { /* Send */
                     int receiver = j - pow(2, step);
                     MPI_Send(sum, 1, MPI_FLOAT, receiver, 2, MPI_COMM_WORLD);
+#ifdef DEBUG
                     printf("[Step %d] : my_rank %d - Send to %d - *sum is %.2f\n", step, my_rank, receiver, *sum);
+#endif
                     finish = 1; // After sending its results, the process returns.
                     break;
                 }
@@ -86,21 +93,31 @@ int reduce(int my_rank, int comm_sz, unsigned int count, float nums[], float *su
 }
 
 
-// TODO: Improve scathering.
 void get_data(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) {
     if (my_rank == 0) {
         unsigned int count;
         scanf("%u", &count);  // Get numbers count.
 
-        //float nums[count]; // Get numbers.
-        // It's better to use heap allocation to prevent stack overflows.
+        // NOTE: It's better to use heap allocation to prevent stack overflows.
+        //      Another option would be increasing the stack size, which can be
+        //      done globally on Mac OS X with the following command:
+        //
+        //      ulimit -s hard
+        //
+        //      or by asking the linker with:
+        //
+        //      gcc ... -Wl,-stack_size,<stack_size> ...
+        //
+        //      where `<stack_size>` is a multiple of 4 (e.g.: 0xF0000000).
+        //
+        // float nums[count];
         float *nums = (float *) calloc(count, sizeof(float));
-        for (int i = 0; i < count; i++) {
-            scanf("%f", &nums[i]);
+        for (int i = 0; i < count; i++) { // Get numbers.
+            scanf("%f", &nums[i]); 
         }
 
         div_t res = div(count, comm_sz);
-        // #0 computes the excedent if any (from 0 to *my_count - 1).
+        // Process #0 computes the excedent if any (from 0 to *my_count - 1).
         *my_count = res.quot + res.rem;
         *my_nums = (float *) calloc(*my_count, sizeof(float));
         // TODO: Use `memcpy` instead of `for`.
@@ -128,6 +145,15 @@ void get_data(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums)
 }
 
 
+static void usage(int argc, char *argv[]) {
+    printf("Generate file with random float numbers:\n");
+    printf("%s -gen <filename> <num_count>\n", argv[0]);
+    printf("\n");
+    printf("Process single file:\n");
+    printf("mpiexec -n <nproc> %s < <input>\n", argv[0]);
+}
+
+
 int main(int argc, char *argv[]) {
     int comm_sz; /* Number of processes */
     int my_rank; /* My process rank */
@@ -139,7 +165,10 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
     // Generate random input data.
-    if (argc == 4 && strcmp(argv[1], "-gen") == 0) {
+    if (argc == 2 && strcmp(argv[1], "--help") == 0) {
+        usage(argc, argv);
+        return 0;
+    } else if (argc == 4 && strcmp(argv[1], "-gen") == 0) {
         FILE* out = fopen(argv[2], "w");
         generate_floats(out, atoi(argv[3]));
         return 0;
@@ -162,7 +191,7 @@ int main(int argc, char *argv[]) {
     ulli seconds  = end.tv_sec - start.tv_sec;
     ulli useconds = end.tv_usec - start.tv_usec; 
     // '+ 0.5' is a technique for rounding positive values (like ceil() would do).
-    ulli elapsed_ms = (ulli) (seconds * 1000 + useconds / 1000.0) + 0.5;
+    ulli elapsed_ms = (ulli) (seconds * 1000.0 + useconds / 1000.0 + 0.5);
 
     if (my_rank == 0) {
         ulli max_time = elapsed_ms;
