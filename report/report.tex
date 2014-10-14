@@ -16,10 +16,33 @@
 \usepackage[scaled=0.8]{beramono}
 \usepackage{xspace}
 \usepackage{pdfpages}
+\usepackage{listings}
+\usepackage{xcolor}
 
 \pdfgentounicode=1
 
 \newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+\lstdefinestyle{c}{%
+    language=C,
+    basicstyle=\ttfamily,
+    numbers=left,
+    breaklines=true,
+    belowcaptionskip=1\baselineskip,
+    aboveskip=1\baselineskip,
+    belowskip=1\baselineskip,
+    moredelim=*[is][\color{red}]{@}{@}
+}
+
+\lstset{%
+    basicstyle=\ttfamily,
+    aboveskip=1\baselineskip,
+    belowskip=1\baselineskip,
+    extendedchars=true,
+    literate={á}{{\'a}}1 {ã}{{\~a}}1 {é}{{\'e}}1
+}
+
+\renewcommand{\lstlistingname}{Código}
 
 \begin{document}
 
@@ -104,10 +127,10 @@ gerar um arquivo de dados, \texttt{numbers.dat}, contendo, por exemplo, 64
 elementos, basta executar o binário passando-se a \textit{flag} \texttt{-gen},
 conforme descrito a seguir:
 
-\begin{verbatim}
+\begin{lstlisting}[language=bash]
 $ make      # Gera o binário com nome: 'sumtree'.
 $ ./sumtree -gen numbers.dat 64
-\end{verbatim}
+\end{lstlisting}
 
 Uma outra opção disponível é a \texttt{-{}-help}, que exibe informações de uso da
 aplicação.
@@ -117,12 +140,12 @@ aplicação.
 Para distribuir os dados entre os diferentes processos, foram criadas duas
 funções:
 
-\begin{verbatim}
+\begin{lstlisting}[style=c, numbers=none]
 void scather(int my_rank, int comm_sz,
     unsigned int *my_count, float **my_nums);
 void scather_intercalate(int my_rank, int comm_sz,
     unsigned int *my_count, float **my_nums);
-\end{verbatim}
+\end{lstlisting}
 
 Uma sempre pode ser utilizada no lugar da outra sem alterar o resultado final
 (note que a assinatura é a mesma). A única diferença está na política de
@@ -141,6 +164,53 @@ res - 1]$, o processo 1 recebe $[res, 2 \times res - 1]$, e assim por diante.
 Por outro lado, a \texttt{scather\_intercalate} intercala os números entre os
 processos, varrendo o vetor e atribuindo o elemento no índice $i$ ao processo $i
 \bmod comm\_sz$. 
+
+
+\subsection{Evitando \textit{Deadlocks}}
+Na implementação do MPI utilizada, ambas as primitivas \texttt{Send()} e
+\texttt{Recv()} são ``blocantes''. Isso significa que cuidado adicional deve ser
+tomado para que não ocorram \textit{deadlocks}. O trecho de
+código~\ref{code:deadlock} apresenta como a função \texttt{reduce\_sumtree()}
+foi projetada para evitar a ocorrência de \textit{deadlocks}.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[frame=single, style=c, label={code:deadlock},
+    caption={Ordem das primitivas MPI\_Send() e MPI\_Recv() na função \texttt{reduce\_sumtree()}.}]
+...
+if (my_rank % 2 == 0) {
+    int dst = my_rank + 1;
+
+    // Copy second half of `nums[]` to `my_nums`.
+    memcpy(my_nums, nums + qty, qty * sizeof(float));
+
+    // Send first half of `nums[]` to `dst`.
+    @MPI_Send(nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
+
+    // Receive second half of his `nums[]` into `his_nums`.
+    @MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,
+        MPI_STATUS_IGNORE);@
+} else {
+    int dst = my_rank - 1;
+
+    // Copy first half of `nums[]` to `my_nums`.
+    memcpy(my_nums, nums, qty * sizeof(float));
+
+    // Receive first half of his `nums[]` into `his_nums`.
+    @MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,
+        MPI_STATUS_IGNORE);@
+
+    // Send second half of `nums[]` to `dst`.
+    @MPI_Send(nums + qty, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
+}
+...
+\end{lstlisting}
+\end{minipage}
+
+Se as primitivas \texttt{MPI\_Recv()} e \texttt{MPI\_Send()} aparecerem na mesma
+ordem no \texttt{if} e no \texttt{else}, os processos entrarão em
+\textit{deadlock}. Ao colocá-los de forma alternada, garante-se que para cada
+\texttt{MPI\_Send()} existirá um \texttt{MPI\_Recv()} e vice-versa.
+
 
 \section{Resultados}
 \label{sec:resultados}
