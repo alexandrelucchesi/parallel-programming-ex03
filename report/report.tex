@@ -27,16 +27,17 @@
 
 \section{Introdução}
 Este relatório tem como objetivo apresentar os resultados obtidos a partir da
-execução do segundo exercício de programação paralela~\cite{exercise}, que
-consiste na paralelização do algoritmo \emph{Pi de Monte Carlo} utilizando a
-biblioteca \texttt{pthreads}. Primeiramente, os aspectos principais do
-algoritmo desenvolvido e a estratégia de paralelização utilizada é apresentada.
-Em seguida, é realizada uma análise de desempenho comparando os tempos de
-execução do algoritmo em diversas configurações, isto é, variando-se o número
-de lançamentos (pontos) e o número de \textit{threads}.  O código-fonte
-completo deste trabalho (incluindo os arquivos \LaTeX\xspace que compõem este
-relatório) estão publicamente disponíveis no
-GitHub~\footnote{\url{https://github.com/alexandrelucchesi/parallel-programming-ex02}}.
+execução do terceiro exercício de programação paralela~\cite{exercise}, que
+consiste na implementação de uma árvore de redução de soma (\textit{sum tree})
+utilizando Message Passing Interface (MPI)~\footnote{Neste trabalho, utilizou-se
+a implementação OpenMPI para Mac OS X, instalada a partir do utilitário
+Homebrew.}. Primeiramente, os aspectos principais do algoritmo desenvolvidos são
+apresentados. Em seguida, é realizada uma análise de desempenho comparando os
+tempos de execução do algoritmo em diversas configurações, isto é, variando-se o
+número de processos e a quantidade de números de ponto-flutuante a serem
+somados. O código-fonte completo deste trabalho, incluindo os arquivos
+\LaTeX\xspace que compõem este relatório, estão publicamente disponíveis no
+GitHub~\footnote{\url{https://github.com/alexandrelucchesi/parallel-programming-ex03}}.
 
 \subsection{\textit{Hardware} Utilizado}
 \label{sec:hardware}
@@ -54,25 +55,38 @@ GitHub~\footnote{\url{https://github.com/alexandrelucchesi/parallel-programming-
 
 
 \section{O Algoritmo}
-Além do programa principal, foi desenvolvido um \textit{script bash} para
+
+
+\subsection{Artefatos Desenvolvidos}
+O programa desenvolvido possui duas funcionalidades principais: (i) geração de
+um arquivo de dados contendo um número arbitrário de valores de ponto-flutuante;
+(ii) e processamento de um arquivo de dados retornando a soma dos elementos e o
+tempo de execução do algoritmo. Além do programa principal, foram desenvolvidos
+dois \textit{scripts bash}: um para facilitar a execução do programa principal,
+encapsulando a chamada ao \texttt{mpiexec} (ou \texttt{mpirun}), e outro para
 automatizar os testes da aplicação. Esses artefatos são descritos a seguir.
 
 \begin{itemize}
-	\item \texttt{main.c}: programa em C contendo o código-fonte da aplicação. Após compilado com as respectivas diretivas
-		(\texttt{-lpthread -lmath} --- vide Makefile) recebe via
-		\texttt{scanf()} dois argumentos: o número de \textit{threads} a serem
-		criadas e a quantidade de lançamentos a serem realizados. A saída do
-		programa tem duas linhas: a primeira contém o valor aproximado de Pi e
-		a segunda, o tempo de execução do algoritmo em microsegundos.
+    \item \texttt{main.c}: programa em C contendo o código-fonte da aplicação.
+        Após compilado com o \texttt{mpicc} (vide Makefile), pode ser executado
+        chamando-se o \textit{script} \texttt{run.sh} passando-se o número de
+        processos e o arquivo de dados. O \texttt{run.sh} executará o programa
+        usando o \texttt{mpiexec} e passando esses dois argumentos, que são
+        recebidos via \texttt{scanf()}. A saída do programa é uma linha contendo
+        dois números: o primeiro representa o resultado da soma dos números de
+        ponto-flutuante e o segundo, o tempo de execução do algoritmo de redução
+        em milisegundos (desconsiderando o tempo de entrada de dados).
+% TODO: Update text below!
 	\item \texttt{test.sh}: \textit{script} desenvolvido para automatizar os
 		testes da aplicação. Recebe como entrada 4 argumentos, em ordem:
 		\begin{itemize}
 			\item \texttt{max\_threads}: número máximo de \textit{threads}. O
 				\textit{script} varia o número de \textit{threads} de 1 até
 				\texttt{max\_threads}.
-			\item \texttt{max\_tosses}: ordem máxima do número de lançamentos, isto
-				é, o \textit{script} executa a aplicação variando o 
-				número de lançamentos, começando em $10^2, 10^3$ até $10^{max\_tosses}$.
+            \item \texttt{max\_tosses}: ordem máxima do número de lançamentos,
+                isto é, o \textit{script} executa a aplicação variando o número
+                de lançamentos, começando em $10^2, 10^3$ até
+                $10^{max\_tosses}$.
 			\item \texttt{max\_runs}: número máximo de vezes em que o programa
 				deve ser executado em uma mesma configuração.
 			\item \texttt{max\_time}: \textit{timeout} de execução, ou seja, se o
@@ -80,60 +94,53 @@ automatizar os testes da aplicação. Esses artefatos são descritos a seguir.
 		\end{itemize}
 \end{itemize}
 
-\subsection{Geração de números aleatórios}
-Como o método de aproximação do valor de pi é baseado no Método de Monte Carlo,
-é necessária a geração de números aleatórios de ponto-flutuante. Além disso, a
-função que gera esses números tem que ser \textit{thread safe}, uma vez que o
-algoritmo será paralelizado e o código chamado por várias \textit{threads} ao
-mesmo tempo. Por isso, utilizou-se a função \texttt{rand\_r(unsigned int *)}.
 
-A função inicializadora, \texttt{srand(unsigned int seed)}, foi executada uma
-vez por \textit{thread}. Inicialmente, utilizou-se como semente para
-\texttt{srand} o resultado de uma função temporal (\texttt{time(NULL)}), porém,
-os resultados de pi em múltiplas execuções do programa quando executado a
-partir do \textit{script} estava igual. Acredita-se que isso se deve ao fato
-das várias execuções serem realizadas em um intervalo de tempo muito pequeno,
-pois, acrescentando-se um \texttt{sleep(1)} entre as chamadas, os resultados
-começaram a variar.
-
-Apesar de correta, a solução com \texttt{sleep()} não é ideal, pois deixa a
-execução dos testes muito lenta, sobretudo se o conjunto de testes for
-abrangente (vide Seção~\ref{sec:resultados}). Dessa forma, somou-se ao resultado
-de \texttt{time(NULL)} um fator para introduzir aleatoridade que é único entre
-várias execuções do programa: o valor de \texttt{getpid()}.
-
-\subsection{Política de escalonamento}
-Procurou-se similar a política de escalonamento estática encontrada na
-biblioteca OpenMP.  Dessa forma, tenta-se dividir igualmente o trabalho entre
-as \textit{threads} antes da criação ou execução das mesmas. Por exemplo, se a
-entrada do programa for 2 \textit{threads} e 1000 lançamentos, atribui-se
-previamente a cada \textit{thread} o cálculo de 500 lançamentos. Caso a divisão
-não seja exata, ou seja, se a entrada do programa for 2 \textit{threads} e 1005
-lançamentos, o excedente (resto da divisão) é atribuído à primeira
-\textit{thread} criada.
-
-
-\subsection{Parâmetros de entrada}
-Se o número de \textit{threads} especificado for menor ou igual a 1, nenhuma
-\textit{thread} é criada e o programa é executado de forma sequencial. É válido
-ressaltar que isso não implicou em redundância de código-fonte, ou seja, no
-\emph{modo sequencial} é executada a mesma função cujo ponteiro seria passado
-para \texttt{pthread\_create()}, porém, sem o \textit{overhead} de criação e
-finalização de \textit{threads}.
-
-
-\subsection{Tipos das variáveis}
-Com o objetivo de se preservar ao máximo os dados provenientes das computações
-e mitigar a perda de precisão por truncamento ou resultados errôneos por
-\textit{overflow}, usou-se em toda a aplicação os tipos \texttt{unsigned long
-long int} e \texttt{long long int} para valores inteiros, e \texttt{long
-double} para valores de ponto flutuante. Utilizou-se \texttt{typedef}s para tornar o código menos verboso e mais 
-legível:
+\subsection{Geração do Arquivo de Dados}
+\label{sec:data-gen}
+Para a geração de quantidades configuráveis de números de ponto-flutante em um
+formato apropriado para servir de entrada para o programa, pode-se executar o
+binário proveniente do processo de compilação diretamente. Por exemplo, para
+gerar um arquivo de dados, \texttt{numbers.dat}, contendo, por exemplo, 64
+elementos, basta executar o binário passando-se a \textit{flag} \texttt{-gen},
+conforme descrito a seguir:
 
 \begin{verbatim}
-typedef unsigned long long int ulli;
+$ make      # Gera o binário com nome: 'sumtree'.
+$ ./sumtree -gen numbers.dat 64
 \end{verbatim}
 
+Uma outra opção disponível é a \texttt{-{}-help}, que exibe informações de uso da
+aplicação.
+
+
+\subsection{Função de ``Espalhamento''}
+Para distribuir os dados entre os diferentes processos, foram criadas duas
+funções:
+
+\begin{verbatim}
+void scather(int my_rank, int comm_sz,
+    unsigned int *my_count, float **my_nums);
+void scather_intercalate(int my_rank, int comm_sz,
+    unsigned int *my_count, float **my_nums);
+\end{verbatim}
+
+Uma sempre pode ser utilizada no lugar da outra sem alterar o resultado final
+(note que a assinatura é a mesma). A única diferença está na política de
+atribuição dos números aos processos. Internamente, o processo com
+\texttt{my\_rank} igual a zero é sempre o responsável por ler o arquivo de dados
+e dividir os números entre os \texttt{comm\_sz} processos, retornando em
+\texttt{my\_count} e \texttt{my\_nums} a quantidade de elementos e os números,
+respectivamente.
+
+No caso da \texttt{scather}, a quantidade total de números (lida do arquivo de
+entrada) é dividida pelo número de processos (\texttt{comm\_sz}) e o resultado
+(\texttt{res}) obtido é utilizado para atribuir sequencialmente os números aos
+processos, ou seja, o processo 0 recebe os números indexados pelo intervalo $[0,
+res - 1]$, o processo 1 recebe $[res, 2 \times res - 1]$, e assim por diante.
+
+Por outro lado, a \texttt{scather\_intercalate} intercala os números entre os
+processos, varrendo o vetor e atribuindo o elemento no índice $i$ ao processo $i
+\bmod comm\_sz$. 
 
 \section{Resultados}
 \label{sec:resultados}
@@ -198,74 +205,17 @@ gerenciar 6 \textit{threads} para calcular apenas 100 números é muito alto.
 
 \includepdf[pages={1-},scale=1.0,landscape=true]{bench.pdf}
 
-%A Tabela~\ref{table:bench-sched-chunk} apresenta os resultados da primeira
-%análise. Nota-se que em todos os casos, o tamanho de \textit{chunk} ótimo foi
-%1.  Isso contrariou as expectativas, pois esperava-se obter como tamanho ótimo
-%para o \textit{chunk} um valor que se aproximasse do tamanho da \textit{cache},
-%para se beneficiar do \emph{alinhamento de cache}~\cite{class-notes}. Além
-%disso, observa-se que o escalonamento estático apresenta desempenho médio
-%superior ao dinâmico e ao guiado, e que o impacto de desempenho provocado pela
-%leitura dos dados é irrisório, sendo em média inferior à 0.1s.
-%
-%%\begin{table}[h!]
-%%\footnotesize
-%%\centering
-%%\caption{Tamanho de \textit{chunk} variável e número de \textit{threads} fixo (em 4).}
-%%\label{table:bench-sched-chunk}
-%%\input{./bench_sched_chunk.tex}
-%%\end{table}
-%
-%A Tabela~\ref{table:bench-sched-thread} apresenta os resultados da segunda
-%análise. Observa-se dois valores aparentemente absurdos de tempo de resposta com
-%escalonamento dinâmico e uma \textit{thread}: 680.678471s e 680.679593s. No
-%entanto, esses valores apareceram nos resultados porque o \textit{laptop}
-%``dormiu'' devido à inatividade enquanto executava o algoritmo.
-%
-%%\begin{table}[h!]
-%%\footnotesize
-%%\centering
-%%\caption{Tamanho de \textit{chunk} fixo (em 256) e número de \textit{threads}
-%%variável.}
-%%\label{table:bench-sched-thread}
-%%\input{./bench_sched_thread.tex}
-%%\end{table}
-%
-%O \textit{speedup} de um programa paralelo é definido como~\cite{main-book}:
-%
-%$$S = \frac{T_{serial}}{T_{parallel}}$$
-%
-%Por motivos de simplificação, a Tabela~\ref{table:speedup} apresenta a relação
-%entre o \textit{speedup} obtido e o número de \textit{threads} executadas apenas
-%para o escalonamento estático, uma vez que as outras políticas apresentaram
-%ganhos similares. Observa-se que ao se utilizar duas \textit{threads} foi
-%possível obter um ganho significativo de desempenho ($\approx 72\%$). A partir
-%de três \textit{threads} o ganho sofreu atenuação e manteve uma certa
-%uniformidade. Acredita-se que esse comportamento ocorreu devido as
-%características do processador utilizado (vide Seção~\ref{sec:hardware}), que só
-%possui 2
-%\textit{cores}.
-%
-%\begin{table}[h!]
-%\footnotesize
-%\centering
-%\caption{\textit{Speedup} x \textit{threads}.}
-%\label{table:speedup}
-%\begin{tabular}{@{}cccccccc@{}}
-%\toprule
-%\textit{Threads} & 2 & 3 & 4 & 5 & 6 & 7 & 8 \\ \midrule
-%\textit{Speedup} & 0.717707 & 0.548823 & 0.564227 & 0.573196 & 0.580434 & 0.567042 & 0.581778 \\ \bottomrule 
-%\end{tabular}
-%\end{table}
-
-
 \section{Conclusão}
-Este trabalho possibilitou uma maior compreensão acerca da biblioteca
-\texttt{pthreads} e sobre algumas das dificuldades encontradas no contexto de
-programação paralela. O algoritmo \textit{Pi de Monte Carlo} foi otimizado a
-partir da aplicação de técnicas de programação para um maior aproveitamento dos
-recursos computacionais que levaram a ganhos de desempenho. Uma análise dos
-tempos de execução do algoritmo evidenciou ganhos de desempenho
-(\textit{speedup}) de até 252\% em relação à versão sequencial.
+Este trabalho possibilitou uma maior compreensão sobre modelos de programação
+baseados em troca de mensagens, em particular, que utilizam basicamente
+primitivas \texttt{Send()} e \texttt{Recv()}, através da implementação de uma
+árvore de redução de soma usando MPI\@.
+
+O algoritmo desenvolvido possibilita a simulação de reduções usando um número
+grande de processos, utilizando as primitivas citadas anteriormente para
+realizar somas intermediárias até chegar na redução a partir de uma \emph{Sum
+Tree}. Uma análise dos tempos de execução do algoritmo evidenciou ganhos de
+desempenho (\textit{speedup}) de até 252\% em relação à versão sequencial.
 
 Por fim, é válido ressaltar que o o \textit{design} da aplicação (incluindo o
 \textit{script} \texttt{test.sh}) permite variar de forma fácil as condições de
