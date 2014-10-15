@@ -6,10 +6,9 @@
 # 
 # Exercício de Programação 03 - Sum Tree
 
-# sh test.sh 25 5 5m
+# sh test.sh 25 5
 max_numbers=$1
 max_runs=$2
-#max_time=$3
 
 file1_prefix="./res/sum_"
 file2_prefix="./res/time_"
@@ -27,7 +26,7 @@ if [ ${#data_files} -gt 0 ]; then
 fi
 
 # Generates input files...
-for num_order in `seq 2 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
+for num_order in `seq 20 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
 do
     # Output file storing randomly generated numbers.
     suffix=$((num_order-2))
@@ -54,7 +53,7 @@ do
     printf "\n" >> $file1
     printf "\n" >> $file2
 
-    for num_order in `seq 2 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
+    for num_order in `seq 20 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
     do
         printf "2^$num_order" >> $file1
         printf "2^$num_order" >> $file2
@@ -63,36 +62,15 @@ do
         suffix=$((num_order-2))
         data_file=$file3_prefix$suffix".dat"
 
-#        fst=$t
-#        snd=`echo "10^$num_order" | bc`
-#        f="echo $fst $snd | ./a.out"
-#        num_count=$(echo "10^$num_order" | bc)
-#        ./sumtree -gen $data_file $num_count
-#        to_exec="mpiexec -n $t sumtree < $data_file"
-
         for j in `seq 1 $max_runs` # Runs the program <max_runs> times...
         do
             # Runs the program with a fixed timeout...
-#            output=$(gtimeout $max_time bash -c "$to_exec")
             output=$(mpiexec -n $t sumtree < $data_file)
             res=($output) # Convert to array (splitting at ' ')...
             sum=${res[0]}
             time_ms=${res[1]}
             printf ", $sum" >> $file1
             printf ", $time_ms" >> $file2
-
-#             if [ ${#output} -ne 0 ]
-#                 then 
-#                     res=($output) # Convert to array (splitting at ' ')...
-#                     sum=${res[0]}
-#                     time_ms=${res[1]}
-#                     printf ", $sum" >> $file1
-#                     printf ", $time_ms" >> $file2
-#                 else
-#                     printf ", *" >> $file1
-#                     printf ", *" >> $file2
-#                     break
-#             fi
         done
         printf "\n" >> $file1
         printf "\n" >> $file2
