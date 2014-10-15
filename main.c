@@ -26,10 +26,13 @@ typedef unsigned long long int ulli;
 
 
 void generate_floats(FILE* out, int count);
+void read_data(unsigned int *count, float **nums);
 int reduce(int my_rank, int comm_sz, float num, float *sum);
-int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], float *sum);
+int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[],
+		float *sum);
 void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums);
-void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums);
+void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float
+		**my_nums);
 static void usage(int argc, char *argv[]);
 
 
@@ -50,7 +53,7 @@ void generate_floats(FILE* out, int count) {
 
 int reduce(int my_rank, int comm_sz, float num, float *sum) {
     // Initializes `*sum`.
-    //*sum = num;
+    *sum = num;
 
     if (comm_sz == 1)
         return 0;
@@ -93,83 +96,97 @@ int reduce(int my_rank, int comm_sz, float num, float *sum) {
     return 0;
 } /* reduce */
 
-/**
- * IMPORTANT: Before the first time this function is called `*sum` has to be
- * initialized to ZERO.
- */
-int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], float *sum) {
-#ifdef DEBUG_REDUCE_SUMTREE
-    printf("#%d:", my_rank);
-    for (int i = 0; i < count; i++) {
-       printf(" %.2f", nums[i]);
-    }
-    printf("\n");
-#endif
 
-    if (count == 0) { // Process has only one element.
-#ifdef DEBUG_REDUCE_SUMTREE
-        printf("#%d: %.2f (*sum)\n", my_rank, *sum);
-#endif
-        return reduce(my_rank, comm_sz, *sum, sum);
+int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], float *sum) {
+    if (count == 1) { // Process has only one element.
+        return reduce(my_rank, comm_sz, nums[0], sum);
     } else {
         ldiv_t res = ldiv(count, 2);
-        unsigned int half = res.quot;
-        unsigned int half_or_one = half + res.rem;
-        float his_num;
+        unsigned int qty = res.quot;
+
+        float my_nums[qty];
+        float his_nums[qty];
+        float res_nums[qty];
+
         if (my_rank % 2 == 0) {
             int dst = my_rank + 1;
 
-            // Send first half_or_one of `nums[]` to `dst`.
-            for (unsigned int i = 0; i < half_or_one; i++)
-                MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
+            // Copy second half of `nums[]` to `my_nums`.
+            memcpy(my_nums, nums + qty, qty * sizeof(float));
 
-            // Receive half_or_one of his `nums[]` into `his_nums`.
-            for (unsigned int i = 0; i < half_or_one; i++) {
-                MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                (*sum) += his_num;
-            }
+            // Send first half of `nums[]` to `dst`.
+            MPI_Send(nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
+
+            // Receive second half of his `nums[]` into `his_nums`.
+            MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         } else {
             int dst = my_rank - 1;
 
-            // Receive half_or_one of his `nums[]` into `his_nums`.
-            for (unsigned int i = 0; i < half_or_one; i++) {
-                MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                (*sum) += his_num;
-            }
+            // Copy first half of `nums[]` to `my_nums`.
+            memcpy(my_nums, nums, qty * sizeof(float));
 
-            // Send first half_or_one of `nums[]` to `dst`.
-            for (unsigned int i = 0; i < half_or_one; i++)
-                MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
+            // Receive first half of his `nums[]` into `his_nums`.
+            MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            // Send second half of `nums[]` to `dst`.
+            MPI_Send(nums + qty, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
         }
-        return reduce_sumtree(my_rank, comm_sz, half, half != 0 ? nums + half : (float[]) { 0.0f }, sum);
+
+        // Sums the two vectors together.
+#ifdef DEBUG_REDUCE_SUMTREE
+       printf("#%d:", my_rank);
+#endif
+        for (int j = 0; j < qty; j++) {
+           res_nums[j] = my_nums[j] + his_nums[j]; 
+#ifdef DEBUG_REDUCE_SUMTREE
+           printf(" %.2f", res_nums[j]);
+#endif
+        }
+#ifdef DEBUG_REDUCE_SUMTREE
+           printf("\n");
+#endif
+
+        return reduce_sumtree(my_rank, comm_sz, qty, res_nums, sum);
     }
 } /* reduce_sumtree */
 
 
+void read_data(unsigned int *count, float **nums) {
+	scanf("%u", count);  // Get numbers count.
+
+	// NOTE: It's better to use heap allocation to prevent stack overflows.
+	//      Another option would be increasing the stack size, which can be
+	//      done globally on Mac OS X with the following command:
+	//
+	//      ulimit -s hard
+	//
+	//      or by asking the linker with:
+	//
+	//      gcc ... -Wl,-stack_size,<stack_size> ...
+	//
+	//      where `<stack_size>` is a multiple of 4 (e.g.: 0xF0000000).
+	//
+	// float nums[count];
+	(*nums) = (float *) malloc((*count) * sizeof(float));
+	for (int i = 0; i < (*count); i++) { // Get numbers.
+		scanf("%f", (*nums) + i); 
+	}
+}
+
+
 void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) {
     if (my_rank == 0) {
-        unsigned int count;
-        scanf("%u", &count);  // Get numbers count.
+		unsigned int count;
+		float *nums;
 
-        // NOTE: It's better to use heap allocation to prevent stack overflows.
-        //      Another option would be increasing the stack size, which can be
-        //      done globally on Mac OS X with the following command:
-        //
-        //      ulimit -s hard
-        //
-        //      or by asking the linker with:
-        //
-        //      gcc ... -Wl,-stack_size,<stack_size> ...
-        //
-        //      where `<stack_size>` is a multiple of 4 (e.g.: 0xF0000000).
-        //
-        // float nums[count];
-        float *nums = (float *) malloc(count * sizeof(float));
-        for (int i = 0; i < count; i++) { // Get numbers.
-            scanf("%f", &nums[i]); 
+		read_data(&count, &nums);
+
+        if (comm_sz > count) {
+            fprintf(stderr, "[ERROR] Number of processes bigger than number of floats.\n");
+            MPI_Abort(MPI_COMM_WORLD, -1);
         }
 
-        div_t res = div(count, comm_sz);
+        ldiv_t res = ldiv(count, comm_sz);
         // Process #0 computes the excedent if any (from 0 to *my_count - 1).
         *my_count = res.quot + res.rem;
         *my_nums = (float *) malloc((*my_count) * sizeof(float));
@@ -199,25 +216,14 @@ void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) 
 
 void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) {
     if (my_rank == 0) {
-        unsigned int count;
-        scanf("%u", &count);  // Get numbers count.
+		unsigned int count;
+		float *nums;
 
-        // NOTE: It's better to use heap allocation to prevent stack overflows.
-        //      Another option would be increasing the stack size, which can be
-        //      done globally on Mac OS X with the following command:
-        //
-        //      ulimit -s hard
-        //
-        //      or by asking the linker with:
-        //
-        //      gcc ... -Wl,-stack_size,<stack_size> ...
-        //
-        //      where `<stack_size>` is a multiple of 4 (e.g.: 0xF0000000).
-        //
-        // float nums[count];
-        float *nums = (float *) malloc(count * sizeof(float));
-        for (int i = 0; i < count; i++) { // Get numbers.
-            scanf("%f", &nums[i]); 
+		read_data(&count, &nums);
+
+        if (comm_sz > count) {
+            fprintf(stderr, "[ERROR] Number of processes bigger than number of floats.\n");
+            MPI_Abort(MPI_COMM_WORLD, -1);
         }
 
         ldiv_t res = ldiv(count, comm_sz);
@@ -268,7 +274,7 @@ void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float
 #endif
         }
     }
-}
+} /* scather_intercalate */
 
 
 static void usage(int argc, char *argv[]) {
@@ -337,10 +343,14 @@ int main(int argc, char *argv[]) {
     // Start
     gettimeofday(&start, NULL);
 
-    // IMPORTANT: `sum` has to be initiliazed to ZERO so that `reduce_sumtree`
-    // works properly.
     float sum = 0.0f;
-    reduce_sumtree(my_rank, comm_sz, my_count, my_nums, &sum);
+
+    if (comm_sz == 1 && my_rank == 0) { // Sequential version.
+        for (int i = 0; i < my_count; i++)
+            sum += my_nums[i];
+    } else {
+        reduce_sumtree(my_rank, comm_sz, my_count, my_nums, &sum);
+    }
 
     // End
     gettimeofday(&end, NULL);
@@ -365,6 +375,6 @@ int main(int argc, char *argv[]) {
 
     MPI_Finalize();
 
-	return 0;
+    return 0;
 } /* main */
 

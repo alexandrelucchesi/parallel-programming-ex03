@@ -6,19 +6,18 @@
 # 
 # Exercício de Programação 03 - Sum Tree
 
-# sh test.sh 6 11 3 10
-max_procs=$1
-max_numbers=$2
-max_runs=$3
-max_time=$4
+# sh test.sh 25 5 5m
+max_numbers=$1
+max_runs=$2
+#max_time=$3
 
 file1_prefix="./res/sum_"
 file2_prefix="./res/time_"
 file3_prefix="./res/numbers_"
 
-if [ $# -ne 4 ]; then
-        echo "Usage: sh test.sh <max_procs> <10^max_numbers> <max_runs> <max_time>"
-        exit 1
+if [ $# -ne 2 ]; then
+    echo "Usage: sh test.sh <2^max_numbers> <max_runs>"
+    exit 1
 fi
 
 # Cleans data files...
@@ -28,18 +27,19 @@ if [ ${#data_files} -gt 0 ]; then
 fi
 
 # Generates input files...
-for num_order in `seq 5 $max_numbers` # Starting at 10^5 until 10^{max_numbers}.
+for num_order in `seq 2 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
 do
     # Output file storing randomly generated numbers.
-    suffix=$((num_order-4))
+    suffix=$((num_order-2))
     data_file=$file3_prefix$suffix".dat"
 
-    num_count=$(echo "10^$num_order" | bc)
+    num_count=$(echo "2^$num_order" | bc)
     ./sumtree -gen $data_file $num_count
 done
 
 # Performs benchmark...
-for t in `seq 1 $max_procs` # Varies number of processes...
+procs=(1 2 4 8 16)
+for t in ${procs[@]} # Varies number of processes...
 do
     file1=$file1_prefix$t".csv"
     file2=$file2_prefix$t".csv"
@@ -54,13 +54,13 @@ do
     printf "\n" >> $file1
     printf "\n" >> $file2
 
-    for num_order in `seq 5 $max_numbers` # Starting at 10^5 until 10^{max_numbers}.
+    for num_order in `seq 2 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
     do
-        printf "10^$num_order" >> $file1
-        printf "10^$num_order" >> $file2
+        printf "2^$num_order" >> $file1
+        printf "2^$num_order" >> $file2
 
         # File storing the generated numbers to be used in the current iteration.
-        suffix=$((num_order-4))
+        suffix=$((num_order-2))
         data_file=$file3_prefix$suffix".dat"
 
 #        fst=$t
@@ -68,25 +68,31 @@ do
 #        f="echo $fst $snd | ./a.out"
 #        num_count=$(echo "10^$num_order" | bc)
 #        ./sumtree -gen $data_file $num_count
-        to_exec="mpiexec -n $t sumtree < $data_file"
+#        to_exec="mpiexec -n $t sumtree < $data_file"
 
         for j in `seq 1 $max_runs` # Runs the program <max_runs> times...
         do
             # Runs the program with a fixed timeout...
-            output=$(gtimeout $max_time bash -c "$to_exec")
+#            output=$(gtimeout $max_time bash -c "$to_exec")
+            output=$(mpiexec -n $t sumtree < $data_file)
+            res=($output) # Convert to array (splitting at ' ')...
+            sum=${res[0]}
+            time_ms=${res[1]}
+            printf ", $sum" >> $file1
+            printf ", $time_ms" >> $file2
 
-            if [ ${#output} -ne 0 ]
-                then 
-                    res=($output) # Convert to array (splitting at ' ')...
-                    sum=${res[0]}
-                    time_ms=${res[1]}
-                    printf ", $sum" >> $file1
-                    printf ", $time_ms" >> $file2
-                else
-                    printf ", *" >> $file1
-                    printf ", *" >> $file2
-                    break
-            fi
+#             if [ ${#output} -ne 0 ]
+#                 then 
+#                     res=($output) # Convert to array (splitting at ' ')...
+#                     sum=${res[0]}
+#                     time_ms=${res[1]}
+#                     printf ", $sum" >> $file1
+#                     printf ", $time_ms" >> $file2
+#                 else
+#                     printf ", *" >> $file1
+#                     printf ", *" >> $file2
+#                     break
+#             fi
         done
         printf "\n" >> $file1
         printf "\n" >> $file2
