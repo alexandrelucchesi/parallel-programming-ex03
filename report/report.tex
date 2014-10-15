@@ -31,7 +31,7 @@
     belowcaptionskip=1\baselineskip,
     aboveskip=1\baselineskip,
     belowskip=1\baselineskip,
-    moredelim=*[is][\color{red}]{@}{@}
+    moredelim=**[is][\color{red}]{@}{@}
 }
 
 \lstset{%
@@ -180,27 +180,29 @@ foi projetada para evitar a ocorrência de \textit{deadlocks}.
 if (my_rank % 2 == 0) {
     int dst = my_rank + 1;
 
-    // Copy second half of `nums[]` to `my_nums`.
-    memcpy(my_nums, nums + qty, qty * sizeof(float));
+    /* Send first half (or the last) of `nums[]` to `dst`. */
+    for (unsigned int i = 0; i < half_or_one; i++)
+        @MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
 
-    // Send first half of `nums[]` to `dst`.
-    @MPI_Send(nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
-
-    // Receive second half of his `nums[]` into `his_nums`.
-    @MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,
-        MPI_STATUS_IGNORE);@
+    /* Receives half (or the last) of `dst`'s `nums[]` and accumulates into `*sum`. */
+    for (unsigned int i = 0; i < half_or_one; i++) {
+        @MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,@
+            @MPI_STATUS_IGNORE);@
+        (*sum) += his_num;
+    }
 } else {
     int dst = my_rank - 1;
 
-    // Copy first half of `nums[]` to `my_nums`.
-    memcpy(my_nums, nums, qty * sizeof(float));
+    /* Receives half (or the last) of `dst`'s `nums[]` and accumulates into `*sum`. */
+    for (unsigned int i = 0; i < half_or_one; i++) {
+        @MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,@
+            @MPI_STATUS_IGNORE);@
+        (*sum) += his_num;
+    }
 
-    // Receive first half of his `nums[]` into `his_nums`.
-    @MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,
-        MPI_STATUS_IGNORE);@
-
-    // Send second half of `nums[]` to `dst`.
-    @MPI_Send(nums + qty, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
+    /* Send first half (or the last) of `nums[]` to `dst`. */
+    for (unsigned int i = 0; i < half_or_one; i++)
+        @MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
 }
 ...
 \end{lstlisting}
@@ -276,8 +278,8 @@ gerenciar 6 \textit{threads} para calcular apenas 100 números é muito alto.
 \includepdf[pages={1-},scale=1.0,landscape=true]{bench.pdf}
 
 \section{Conclusão}
-Este trabalho possibilitou uma maior compreensão sobre modelos de programação
-baseados em troca de mensagens, em particular, que utilizam basicamente
+Este trabalho possibilitou uma maior compreensão acerca de modelos de
+programação baseados em trocas de mensagem, em particular, que utilizam
 primitivas \texttt{Send()} e \texttt{Recv()}, através da implementação de uma
 árvore de redução de soma usando MPI\@.
 
