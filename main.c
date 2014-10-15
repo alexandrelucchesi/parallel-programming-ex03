@@ -50,7 +50,7 @@ void generate_floats(FILE* out, int count) {
 
 int reduce(int my_rank, int comm_sz, float num, float *sum) {
     // Initializes `*sum`.
-    *sum = num;
+    //*sum = num;
 
     if (comm_sz == 1)
         return 0;
@@ -91,61 +91,59 @@ int reduce(int my_rank, int comm_sz, float num, float *sum) {
     }
 
     return 0;
-}
+} /* reduce */
 
-
+/**
+ * IMPORTANT: Before the first time this function is called `*sum` has to be
+ * initialized to ZERO.
+ */
 int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], float *sum) {
-    if (count == 1) { // Process has only one element.
-        return reduce(my_rank, comm_sz, nums[0], sum);
+#ifdef DEBUG_REDUCE_SUMTREE
+    printf("#%d:", my_rank);
+    for (int i = 0; i < count; i++) {
+       printf(" %.2f", nums[i]);
+    }
+    printf("\n");
+#endif
+
+    if (count == 0) { // Process has only one element.
+#ifdef DEBUG_REDUCE_SUMTREE
+        printf("#%d: %.2f (*sum)\n", my_rank, *sum);
+#endif
+        return reduce(my_rank, comm_sz, *sum, sum);
     } else {
         ldiv_t res = ldiv(count, 2);
-        unsigned int qty = res.quot;
-
-        float my_nums[qty];
-        float his_nums[qty];
-        float res_nums[qty];
-
+        unsigned int half = res.quot;
+        unsigned int half_or_one = half + res.rem;
+        float his_num;
         if (my_rank % 2 == 0) {
             int dst = my_rank + 1;
 
-            // Copy second half of `nums[]` to `my_nums`.
-            memcpy(my_nums, nums + qty, qty * sizeof(float));
+            // Send first half_or_one of `nums[]` to `dst`.
+            for (unsigned int i = 0; i < half_or_one; i++)
+                MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
 
-            // Send first half of `nums[]` to `dst`.
-            MPI_Send(nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
-
-            // Receive second half of his `nums[]` into `his_nums`.
-            MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            // Receive half_or_one of his `nums[]` into `his_nums`.
+            for (unsigned int i = 0; i < half_or_one; i++) {
+                MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                (*sum) += his_num;
+            }
         } else {
             int dst = my_rank - 1;
 
-            // Copy first half of `nums[]` to `my_nums`.
-            memcpy(my_nums, nums, qty * sizeof(float));
+            // Receive half_or_one of his `nums[]` into `his_nums`.
+            for (unsigned int i = 0; i < half_or_one; i++) {
+                MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                (*sum) += his_num;
+            }
 
-            // Receive first half of his `nums[]` into `his_nums`.
-            MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            // Send second half of `nums[]` to `dst`.
-            MPI_Send(nums + qty, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
+            // Send first half_or_one of `nums[]` to `dst`.
+            for (unsigned int i = 0; i < half_or_one; i++)
+                MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);
         }
-
-        // Sums the two vectors together.
-#ifdef DEBUG_REDUCE_SUMTREE
-       printf("#%d:", my_rank);
-#endif
-        for (int j = 0; j < qty; j++) {
-           res_nums[j] = my_nums[j] + his_nums[j]; 
-#ifdef DEBUG_REDUCE_SUMTREE
-           printf(" %.2f", res_nums[j]);
-#endif
-        }
-#ifdef DEBUG_REDUCE_SUMTREE
-           printf("\n");
-#endif
-
-        return reduce_sumtree(my_rank, comm_sz, qty, res_nums, sum);
+        return reduce_sumtree(my_rank, comm_sz, half, half != 0 ? nums + half : (float[]) { 0.0f }, sum);
     }
-}
+} /* reduce_sumtree */
 
 
 void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) {
@@ -196,7 +194,7 @@ void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) 
         *my_nums = (float *) calloc(*my_count, sizeof(float));
         MPI_Recv(*my_nums, *my_count, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
     }
-}
+} /* scather */
 
 
 void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) {
@@ -279,7 +277,7 @@ static void usage(int argc, char *argv[]) {
     printf("\n");
     printf("Process single file:\n");
     printf("mpiexec -n <nproc> %s < <input>\n", argv[0]);
-}
+} /* usage */
 
 
 int main(int argc, char *argv[]) {
@@ -339,7 +337,9 @@ int main(int argc, char *argv[]) {
     // Start
     gettimeofday(&start, NULL);
 
-    float sum;
+    // IMPORTANT: `sum` has to be initiliazed to ZERO so that `reduce_sumtree`
+    // works properly.
+    float sum = 0.0f;
     reduce_sumtree(my_rank, comm_sz, my_count, my_nums, &sum);
 
     // End
@@ -366,5 +366,5 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
 
 	return 0;
-}
+} /* main */
 
