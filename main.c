@@ -12,6 +12,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/time.h>
 #include <mpi.h>
 
@@ -25,7 +26,7 @@
 typedef unsigned long long int ulli;
 
 
-void generate_floats(FILE* out, int count);
+void generate_floats(FILE* out, unsigned int count);
 void read_data(unsigned int *count, float **nums);
 int reduce(int my_rank, int comm_sz, float num, float *sum);
 int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[],
@@ -40,10 +41,10 @@ static void usage(int argc, char *argv[]);
  * Utilitary function to generate a file containing random data in the
  * appropriate format to be processed by the program.
  */
-void generate_floats(FILE* out, int count) {
+void generate_floats(FILE* out, unsigned int count) {
     srand(time(NULL));
     fprintf(out, "%d\n", count);
-    for (int i = 0; i < count; i++) {
+    for (unsigned int i = 0; i < count; i++) {
         float r = (float) rand() / (float) (rand() + 1);
         fprintf(out, "%.2f ", r);
     }
@@ -104,9 +105,12 @@ int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], f
         ldiv_t res = ldiv(count, 2);
         unsigned int qty = res.quot;
 
-        float my_nums[qty];
-        float his_nums[qty];
-        float res_nums[qty];
+        //float my_nums[qty];
+        //float his_nums[qty];
+        //float res_nums[qty];
+        float *my_nums  = (float *) malloc(qty * sizeof(float));
+        float *his_nums = (float *) malloc(qty * sizeof(float));
+        float *res_nums = (float *) malloc(qty * sizeof(float));
 
         if (my_rank % 2 == 0) {
             int dst = my_rank + 1;
@@ -136,7 +140,7 @@ int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], f
 #ifdef DEBUG_REDUCE_SUMTREE
        printf("#%d:", my_rank);
 #endif
-        for (int j = 0; j < qty; j++) {
+        for (unsigned int j = 0; j < qty; j++) {
            res_nums[j] = my_nums[j] + his_nums[j]; 
 #ifdef DEBUG_REDUCE_SUMTREE
            printf(" %.2f", res_nums[j]);
@@ -145,6 +149,8 @@ int reduce_sumtree(int my_rank, int comm_sz, unsigned int count, float nums[], f
 #ifdef DEBUG_REDUCE_SUMTREE
            printf("\n");
 #endif
+	free(my_nums);
+	free(his_nums);
 
         return reduce_sumtree(my_rank, comm_sz, qty, res_nums, sum);
     }
@@ -168,7 +174,7 @@ void read_data(unsigned int *count, float **nums) {
 	//
 	// float nums[count];
 	(*nums) = (float *) malloc((*count) * sizeof(float));
-	for (int i = 0; i < (*count); i++) { // Get numbers.
+	for (unsigned int i = 0; i < (*count); i++) { // Get numbers.
 		scanf("%f", (*nums) + i); 
 	}
 }
@@ -195,8 +201,8 @@ void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) 
 
         // Divides array between other processes.
         unsigned int dest_count = res.quot;
-        for (int dest = 1, index = *my_count; dest < comm_sz; dest++) {
-            float *dest_nums = (float *) calloc(dest_count, sizeof(float));
+        for (unsigned int dest = 1, index = *my_count; dest < comm_sz; dest++) {
+            float *dest_nums = (float *) malloc(dest_count * sizeof(float));
             // NOTE: Uses `memcpy` instead of `for` for efficiency.
             memcpy(dest_nums, nums + index, dest_count * sizeof(float));
             index += dest_count;
@@ -208,7 +214,7 @@ void scather(int my_rank, int comm_sz, unsigned int *my_count, float **my_nums) 
         free(nums);
     } else { /* my_rank != 0 */
         MPI_Recv(my_count, 1, MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
-        *my_nums = (float *) calloc(*my_count, sizeof(float));
+        *my_nums = (float *) malloc((*my_count) * sizeof(float));
         MPI_Recv(*my_nums, *my_count, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
     }
 } /* scather */
@@ -248,7 +254,7 @@ void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float
         *my_nums = (float *) malloc((*my_count) * sizeof(float)); // Allocates #0 numbers vector.
         unsigned int j = 0; // Keeps next available position of `*my_nums` vector for #0.
         for (unsigned int i = 0; i < count; i++) {
-            int dest_rank = div(i, comm_sz).rem; // Which process should receive the number.
+            int dest_rank = ldiv(i, comm_sz).rem; // Which process should receive the number.
             if (dest_rank == 0) {
                 (*my_nums)[j++] = nums[i];
             } else {
@@ -267,7 +273,7 @@ void scather_intercalate(int my_rank, int comm_sz, unsigned int *my_count, float
 #endif
         *my_nums = (float *) malloc((*my_count) * sizeof(float));
         // Receives the numbers assigning them to `*my_nums`.
-        for (int i = 0; i < *my_count; i++) {
+        for (unsigned int i = 0; i < *my_count; i++) {
             MPI_Recv(&(*my_nums)[i], 1, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
 #ifdef DEBUG_SCATHER_INTERCALATE
                 printf("\t#%d received number %.1f\n", my_rank, (*my_nums)[i]);
@@ -302,7 +308,7 @@ int main(int argc, char *argv[]) {
         return 0;
     } else if (argc == 4 && strcmp(argv[1], "-gen") == 0) {
         FILE* out = fopen(argv[2], "w");
-        generate_floats(out, atoi(argv[3]));
+        generate_floats(out, atol(argv[3]));
         return 0;
     }
 
@@ -312,7 +318,7 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG_MAIN
     if (my_rank == 0) {
         printf("#0:");
-        for (int i = 0; i < my_count; i++) {
+        for (unsigned int i = 0; i < my_count; i++) {
             printf(" %.1f", my_nums[i]);
         }
         printf("\n");
@@ -325,7 +331,7 @@ int main(int argc, char *argv[]) {
             MPI_Recv(his_nums, his_count, MPI_FLOAT, i, 91, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             printf("#%d:", i);
-            for (int i = 0; i < his_count; i++) {
+            for (unsigned int i = 0; i < his_count; i++) {
                 printf(" %.1f", his_nums[i]);
             }
             printf("\n");
@@ -346,11 +352,13 @@ int main(int argc, char *argv[]) {
     float sum = 0.0f;
 
     if (comm_sz == 1 && my_rank == 0) { // Sequential version.
-        for (int i = 0; i < my_count; i++)
+        for (unsigned int i = 0; i < my_count; i++)
             sum += my_nums[i];
     } else {
         reduce_sumtree(my_rank, comm_sz, my_count, my_nums, &sum);
     }
+
+    free(my_nums);
 
     // End
     gettimeofday(&end, NULL);

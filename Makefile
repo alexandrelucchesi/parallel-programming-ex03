@@ -1,3 +1,3 @@
 main:
-	mpicc -Wall main.c -o sumtree
+	mpicc -Wall -std=c99 main.c -o sumtree -lm
 

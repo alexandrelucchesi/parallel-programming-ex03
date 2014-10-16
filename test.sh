@@ -29,8 +29,8 @@ fi
 for num_order in `seq 20 $max_numbers` # Starting at 2^20 until 2^{max_numbers}.
 do
     # Output file storing randomly generated numbers.
-    suffix=$((num_order-2))
-    data_file=$file3_prefix$suffix".dat"
+#    suffix=$((num_order-2))
+    data_file=$file3_prefix$num_order".dat"
 
     num_count=$(echo "2^$num_order" | bc)
     ./sumtree -gen $data_file $num_count
@@ -59,8 +59,8 @@ do
         printf "2^$num_order" >> $file2
 
         # File storing the generated numbers to be used in the current iteration.
-        suffix=$((num_order-2))
-        data_file=$file3_prefix$suffix".dat"
+#        suffix=$((num_order-2))
+        data_file=$file3_prefix$num_order".dat"
 
         for j in `seq 1 $max_runs` # Runs the program <max_runs> times...
         do
