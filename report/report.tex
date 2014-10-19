@@ -66,14 +66,15 @@ GitHub~\footnote{\url{https://github.com/alexandrelucchesi/parallel-programming-
 \label{sec:hardware}
 
 \begin{itemize}
-    \item Processador: Intel Core i7
-    \item Velocidade: 2 GHz
+    \item Processador: AMD FX(tm)-8350 Eight-Core Processor
+    \item Velocidade por \textit{core}: 1406.2 MHz
     \item Número de processadores: 1
-    \item Número de \textit{cores} reais: 2
-    \item Número de \textit{cores} virtuais: 4 (HyperThreading)
-    \item L1 cache: 32KB
-    \item L2 cache (per core): 256KB
-    \item L3 cache: 4MB
+    \item Número de \textit{cores}: 8 (máx. 8)
+    \item Número de \textit{threads}: 8 (máx. 8)
+    \item L1 Data cache: 8 x 16 KBytes, 4-way set associative, 64-byte line size
+    \item L1 Instruction cache: 4 x 64 KBytes, 2-way set associative, 64-byte line size
+    \item L2 cache: 4 x 2048 KBytes, 16-way set associative, 64-byte line size
+    \item L3 cache: 8 MBytes, 64-way set associative, 64-byte line size
 \end{itemize}
 
 
@@ -99,21 +100,14 @@ automatizar os testes da aplicação. Esses artefatos são descritos a seguir.
         dois números: o primeiro representa o resultado da soma dos números de
         ponto-flutuante e o segundo, o tempo de execução do algoritmo de redução
         em milisegundos (desconsiderando o tempo de entrada de dados).
-% TODO: Update text below!
 	\item \texttt{test.sh}: \textit{script} desenvolvido para automatizar os
-		testes da aplicação. Recebe como entrada 4 argumentos, em ordem:
+		testes da aplicação. Recebe como entrada 2 argumentos, em ordem:
 		\begin{itemize}
-			\item \texttt{max\_threads}: número máximo de \textit{threads}. O
-				\textit{script} varia o número de \textit{threads} de 1 até
-				\texttt{max\_threads}.
-            \item \texttt{max\_tosses}: ordem máxima do número de lançamentos,
-                isto é, o \textit{script} executa a aplicação variando o número
-                de lançamentos, começando em $10^2, 10^3$ até
-                $10^{max\_tosses}$.
+			\item \texttt{max\_numbers}: número máximo de processos. O
+				\textit{script} varia o número de processos de $2^{20}$ até
+				$2^{max\_numbers}$.
 			\item \texttt{max\_runs}: número máximo de vezes em que o programa
 				deve ser executado em uma mesma configuração.
-			\item \texttt{max\_time}: \textit{timeout} de execução, ou seja, se o
-				programa não encerrar a execução nesse tempo, ele é finalizado.
 		\end{itemize}
 \end{itemize}
 
@@ -180,29 +174,25 @@ foi projetada para evitar a ocorrência de \textit{deadlocks}.
 if (my_rank % 2 == 0) {
     int dst = my_rank + 1;
 
-    /* Send first half (or the last) of `nums[]` to `dst`. */
-    for (unsigned int i = 0; i < half_or_one; i++)
-        @MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
+    // Copy second half of `nums[]` to `my_nums`.
+    memcpy(my_nums, nums + qty, qty * sizeof(float));
 
-    /* Receives half (or the last) of `dst`'s `nums[]` and accumulates into `*sum`. */
-    for (unsigned int i = 0; i < half_or_one; i++) {
-        @MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,@
-            @MPI_STATUS_IGNORE);@
-        (*sum) += his_num;
-    }
+    // Send first half of `nums[]` to `dst`.
+    @MPI_Send(nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
+
+    // Receive second half of his `nums[]` into `his_nums`.
+    @MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);@
 } else {
     int dst = my_rank - 1;
 
-    /* Receives half (or the last) of `dst`'s `nums[]` and accumulates into `*sum`. */
-    for (unsigned int i = 0; i < half_or_one; i++) {
-        @MPI_Recv(&his_num, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD,@
-            @MPI_STATUS_IGNORE);@
-        (*sum) += his_num;
-    }
+    // Copy first half of `nums[]` to `my_nums`.
+    memcpy(my_nums, nums, qty * sizeof(float));
 
-    /* Send first half (or the last) of `nums[]` to `dst`. */
-    for (unsigned int i = 0; i < half_or_one; i++)
-        @MPI_Send(nums + i, 1, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
+    // Receive first half of his `nums[]` into `his_nums`.
+    @MPI_Recv(his_nums, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);@
+
+    // Send second half of `nums[]` to `dst`.
+    @MPI_Send(nums + qty, qty, MPI_FLOAT, dst, 2, MPI_COMM_WORLD);@
 }
 ...
 \end{lstlisting}
@@ -213,69 +203,106 @@ ordem no \texttt{if} e no \texttt{else}, os processos entrarão em
 \textit{deadlock}. Ao colocá-los de forma alternada, garante-se que para cada
 \texttt{MPI\_Send()} existirá um \texttt{MPI\_Recv()} e vice-versa.
 
+\section{Medida de Tempo de Execução}
+Para medir o tempo máximo de execução da aplicação de forma precisa, utilizou-se
+\emph{barreiras}. Com uma chamada à função \texttt{MPI\_Barrier()} antes de
+\texttt{reduce\_sumtree()}, garante-se que todos os processos começam a executar
+o algoritmo de redução ``ao mesmo tempo''. Com outra chamada à função
+\texttt{MPI\_Barrier()} após a chamada à \texttt{reduce\_sumtree()} é possível
+sincronizar todos os processos no ponto de término da execução do algoritmo.
+Dessa forma, coletando os tempos (``relógio de parede'') no processo 0
+imediatamente após as barreiras, é possível calcular o tempo total de execução
+da aplicação.
+
+Utilizou-se a função \texttt{gettimeofday()} (disponível em
+``\texttt{sys/time.h}'') para se obter os tempos de início e término e
+aritmética simples para se obter o intervalo de execução em milisegundos.
 
 \section{Resultados}
 \label{sec:resultados}
 Executou-se o \textit{script} de testes (\texttt{test.sh}) passando-se como
-argumentos: 6 \textit{threads}, $10^{12}$ lançamentos, 5 execuções por
-configuração e \textit{timeout} de 24 minutos. Além disso, utilizou-se o
-utilitário de linha de comando \texttt{time} para calcular o tempo total de
-execução dos testes. O resultado é apresentado a seguir.
+argumentos: 25 \texttt{max\_numbers}, para executar testes variando-se a
+quantidade de elementos de $2^{20}$ à $2^{25}$; e 5 \texttt{max\_runs}, para se
+realizar 5 execuções em cada configuração.
 
-\begin{verbatim}
-$ time sh test.sh 6 12 5 1440
+O \textit{script} \texttt{test.sh} gerou como saída arquivos de dados contendo
+os números de ponto-flutuante para serem usados nos testes (extensão
+\texttt{.dat}) e arquivos no formato CSV contendo as tabelas que compõem este
+relatório. Cada tabela é indexada pela quantidade de elementos (no exemplo
+acima, de $10^{20}$ à $10^{25}$) e o número da execução (no exemplo acima, de 1
+a 5). Metade possui o prefixo \texttt{sum\_{n}}, onde \texttt{n} é o número de
+processos utilizado, representando os valores aproximados da soma calculados. A
+outra metade possui prefixo \texttt{time\_{n}}, e contém os valores dos tempos
+de execução.  Em poucas palavras, tem-se 2 arquivos para cada número de
+processos contendo as duas saídas do programa: o valor estimado da soma e o
+tempo de execução do algoritmo.
 
-real    633m8.800s
-user    1503m45.812s
-sys     1m9.481s
-\end{verbatim}
+As seções a seguir apresentam os resultados dos testes, apresentando métricas de
+\textit{speedup}, eficiência e escalabilidade. Os resultados são apresentados
+sob a forma de gráficos. As tabelas com os dados exatos que deram origem a esses
+gráficos estão anexadas ao final do documento.
 
-O valor \texttt{real} é o tempo real (``relógio de parede'') transcorrido desde
-o início da execução do programa até seu término (incluindo períodos de
-bloqueio, etc). Por outro lado, os valores de \texttt{user} e \texttt{sys} se
-referem ao tempo de CPU usado pelo processo em modo usuário e modo
-\textit{kernel}, respectivamente. Dessa forma, a execução dos testes
-responsáveis por gerar as tabelas de \textit{benchmark} levou quase 11 horas
-para ser concluída.
+\subsection{\textit{Speedup}}
+\begin{figure}[h!]
+\centering
+\includegraphics{img/speedup.pdf}
+\caption{Gráfico apresentando a relação entre o \textit{speedup}, o número de
+processos e a quantidade de elementos somados na redução.}
+\label{fig:speedup}
+\end{figure}
 
-O \textit{script} \texttt{test.sh} gera como saída $2 \times max\_threads$
-arquivos no formato CSV\@ (no exemplo acima, 12 arquivos). Cada tabela é
-indexada pelo número de lançamentos (no exemplo acima, de $10^2$ à $10^{12}$) e
-o número da execução (no exemplo acima, de 1 a 5).  Metade possui o prefixo
-\texttt{pi\_{n}}, onde \texttt{n} é o número de \textit{threads} utilizado,
-representando os valores aproximados de pi calculados. A outra metade possui
-prefixo \texttt{time\_{n}}, e contém os valores dos tempos de execução. O valor
-\texttt{*} representa um \textit{timeout}. Em poucas palavras, tem-se 2 arquivos
-por quantidade de \textit{threads} contendo as duas saídas do programa: o valor
-estimado de pi e o tempo de execução do algoritmo.
+A Figura~\ref{fig:speedup} apresenta um gráfico em que cada curva relaciona o
+\textit{speedup} obtido, o número de processos criados e a quantidade de
+elementos somados na redução. De uma forma geral, observa-se que o
+\textit{speedup} \emph{aumenta} conforme a quantidade de processos cresce. A
+excessão ocorre apenas quando se utiliza dois processos, onde perde-se
+desempenho para quase todos os tamanhos de entrada~\footnote{Com $2^{20}$
+elementos houve um ganho de desempenho mínimo, com o \textit{speedup} no valor
+de 1.04.}.
 
-As tabelas a seguir apresentam os resultados dos testes. Observa-se que para uma
-quantidade de lançamentos pequena ($10^2$ e $10^3$), o tempo de execução do
-algoritmo sequencial é melhor do que nas demais configurações. Isto ocorre
-porque os ganhos obtidos da paralelização do algoritmo não são suficientes para
-cobrir o custo de se criar as \textit{threads}. Ao aumentar o número
-de lançamentos para $10^4$, observa-se que o desempenho do algoritmo sequencial
-já perde para algumas configurações, sendo inferior ao obtido com 3 e 4
-\textit{threads}. A partir de $10^5$ lançamentos, o desempenho do algoritmo
-sequencial se torna inferior a todas as demais configurações.
+Isso ocorre porque o \textit{overhead} envolvido na criação de dois processos e,
+principalmente, na comunicação entre os processos é maior do que os possíveis
+ganhos advindos da concorrência entre os mesmos.
 
-É importante notar que para o algoritmo sequencial e para as configurações 2 e 3
-\textit{threads}, o programa excedeu o tempo máximo de execução pré-estabelecido
-(24 minutos). No entanto, para as configurações 4, 5 e 6 \textit{threads}, esse
-tempo não foi atingido, evidenciando que o algoritmo paralelizado é escalável.
-Além disso, observando-se os tempos de execução quando o número de lançamentos é
-alto ($10^{10}$ e $10^{11}$), conclui-se que o maior desempenho é alcançado
-utilizando-se 4 \textit{threads}. Isso está relacionado com o fato de que o
-processador utilizado possui 2 \textit{cores} em
-HyperThreading~\ref{sec:hardware}.
+\subsection{Eficiência}
 
-Em linhas gerais, para $10^{6}$ lançamentos e 4 \textit{threads}, foi possível
-obter o \textit{speedup} máximo: $\approx 252\%$. Em contrapartida, para
-$10^{2}$ lançamentos e 6 \textit{threads}, ocorreu o pior \textit{speedup}:
-$\approx 4.5\%$. Esse resultado era esperado, uma vez que o custo de se
-gerenciar 6 \textit{threads} para calcular apenas 100 números é muito alto.
+\begin{figure}[h!]
+\centering
+\includegraphics{img/efficiency.pdf}
+\caption{Gráfico apresentando a relação entre o \textit{speedup}, o número de
+processos e a quantidade de elementos somados na redução.}
+\label{fig:efficiency}
+\end{figure}
 
-\includepdf[pages={1-},scale=1.0,landscape=true]{bench.pdf}
+A Figura~\ref{fig:efficiency} apresenta um gráfico em que cada curva relaciona a
+\textit{eficiência} obtida, o número de processos criados e a quantidade de
+elementos somados na redução. De uma forma geral, observa-se que a
+\textit{eficiência} \emph{diminui} conforme a quantidade de processos cresce.
+
+\subsection{Escalabilidade}
+
+Conforme ilustrado na Figura~\ref{fig:efficiency} e observando as tabelas de
+tempo de execução ao final deste documento, nota-se que a eficiência cai em uma
+taxa muito maior que os tempos de execução. Dessa forma, conclui-se que a
+aplicação não possui uma boa \emph{escalabilidade forte}.
+
+De forma similar, não se tem também uma boa \emph{escalabilidade fraca},
+conforme apresentado na Figura~\ref{fig:weak-scalability}, que relaciona a
+eficiência, o número de processos, e a quantidade de elementos somados na
+redução. Não está explícito no gráfico, mas para cada número de processos
+obteve-se o valor da eficiência de acordo incrementando-se proporcionalmente o
+tamanho do problema (ou número de elementos a serem somados). Sendo assim, para
+1 processo, utilizou-se $2^20$ elementos; para 2 processos, $2^21$ elementos;
+para 4 processos, $2^22$ elementos; e assim por diante.
+
+\begin{figure}[h!]
+\centering
+\includegraphics{img/weak-scalability.pdf}
+\caption{Gráfico apresentando a relação entre a eficiência e o número de
+processos, aumentando-se proporcionalmente o tamanho do problema.}
+\label{fig:weak-scalability}
+\end{figure}
+
 
 \section{Conclusão}
 Este trabalho possibilitou uma maior compreensão acerca de modelos de
@@ -296,6 +323,11 @@ facilitando a experimentação com novas configurações.
 
 \bibliographystyle{plain}
 \bibliography{references.bib}
+
+
+% ANEXO
+\includepdf[pages={1-},scale=1.0,landscape=false]{./img/bench-tables.pdf}
+
 
 \end{document}
 
