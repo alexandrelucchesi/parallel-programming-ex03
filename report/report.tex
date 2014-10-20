@@ -51,51 +51,95 @@
 \section{Introdução}
 Este relatório tem como objetivo apresentar os resultados obtidos a partir da
 execução do terceiro exercício de programação paralela~\cite{exercise}, que
-consiste na implementação de uma árvore de redução de soma (\textit{sum tree})
-utilizando Message Passing Interface (MPI)~\footnote{Neste trabalho, utilizou-se
-a implementação OpenMPI para Mac OS X, instalada a partir do utilitário
-Homebrew.}. Primeiramente, os aspectos principais do algoritmo desenvolvidos são
-apresentados. Em seguida, é realizada uma análise de desempenho comparando os
-tempos de execução do algoritmo em diversas configurações, isto é, variando-se o
-número de processos e a quantidade de números de ponto-flutuante a serem
-somados. O código-fonte completo deste trabalho, incluindo os arquivos
-\LaTeX\xspace que compõem este relatório, estão publicamente disponíveis no
+consiste na implementação de uma árvore de redução de soma (Sum Tree) utilizando
+Message Passing Interface (MPI)~\footnote{Neste trabalho, utilizou-se durante o
+desenvolvimento a versão mais recente do OpenMPI para Mac OS X instalada a
+partir do utilitário Homebrew. Durante a execução dos testes de desempenho,
+utilizou-se a versão mais recente do OpenMPI para o Ubuntu instalada via
+\texttt{apt-get}.}.  Primeiramente, os aspectos principais do algoritmo
+desenvolvido são apresentados. Em seguida, apresenta-se detalhes dos artefatos
+de \textit{software} desenvolvidos, o processo de geração do arquivo de entrada,
+dois tipos distintos de função de espalhamento implementadas e as técnicas
+utilizadas para medir os tempos de execução da aplicação, evitar
+\textit{deadlocks} e evitar problemas relacionados a \emph{estouros de pilha}.
+Por fim, é realizada uma análise de desempenho comparando os tempos de execução
+do algoritmo em diversas configurações, isto é, variando-se o número de
+processos e a quantidade de números de ponto-flutuante a serem somados. São
+apresentadas como métricas: o \textit{speedup} obtido através da criação de
+múltiplos processos, a eficiência da aplicação e uma análise de escalabilidade.
+O código-fonte completo deste trabalho, incluindo os arquivos \LaTeX\xspace que
+compõem este relatório, estão publicamente disponíveis no
 GitHub~\footnote{\url{https://github.com/alexandrelucchesi/parallel-programming-ex03}}.
-
-\subsection{\textit{Hardware} Utilizado}
-\label{sec:hardware}
-
-\begin{itemize}
-    \item Processador: AMD FX(tm)-8350 Eight-Core Processor
-    \item Velocidade por \textit{core}: 1406.2 MHz
-    \item Número de processadores: 1
-    \item Número de \textit{cores}: 8 (máx. 8)
-    \item Número de \textit{threads}: 8 (máx. 8)
-    \item L1 Data cache: 8 x 16 KBytes, 4-way set associative, 64-byte line size
-    \item L1 Instruction cache: 4 x 64 KBytes, 2-way set associative, 64-byte line size
-    \item L2 cache: 4 x 2048 KBytes, 16-way set associative, 64-byte line size
-    \item L3 cache: 8 MBytes, 64-way set associative, 64-byte line size
-\end{itemize}
 
 
 \section{O Algoritmo}
+\label{sec:algorithm}
+Conforme acordado em sala de aula~\cite{class-notes}, a especificação original
+do projeto~\cite{exercise} foi alterada. A nova especificação determina que o
+programa deve funcionar apenas para um número de elementos e processos que sejam
+expoentes de 2 ($2^i \mid i \in \{0,1,2,3,\ldots,N\}$). Além disso, deve-se
+assumir a possibilidade do tamanho do vetor de entrada ser maior que a
+quantidade de processos, fazendo com que mais de um número seja atribuído ao
+mesmo processo. Dessa forma, os processos devem fazer ``reduções
+intermediárias'', isto é, os processos devem \emph{obrigatoriamente} receber um
+ou mais números provenientes de outro processo (via \texttt{MPI\_Recv()}) e
+realizar reduções locais até que fiquem com apenas um número. Nesse momento, no
+qual todos os processos possuem apenas um número, deve-se executar o algoritmo
+original (Sum Tree) para se obter o resultado final da soma.
 
+O algoritmo que realiza as somas intermediárias foi encapsulado na função
+\texttt{reduce\_sumtree()}, cujo um trecho de código é apresentado na
+Seção~\ref{sec:avoiding-deadlocks}; e o algoritmo Sum Tree foi encapsulado na
+função \texttt{reduce()}. A Figura~\ref{fig:algorithm} apresenta a sequência de
+etapas realizada em \texttt{reduce\_sumtree()} para executar as reduções.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=1.0\textwidth]{img/algorithm_yed.pdf}
+\caption{Exemplo de uso do algoritmo utilizado para fazer as reduções
+intermediárias usando 8 números e 2 processos.}
+\label{fig:algorithm}
+\end{figure}
+
+O exemplo ilustra um vetor de entrada contendo 8 números~\footnote{Por motivos
+de simplificação, utilizou-se números inteiros no exemplo, mas o código foi
+implementando usando números de ponto-flutuante.}, cuja soma deve ser
+calculada por 2 processos: o Processo 0 (P0) e o Processo 1 (P1). Inicialmente,
+cada processo chama a função de espalhamento \texttt{scather()} (vide
+Seção~\ref{sec:scather-function}) para receber os números que deve calcular.
+Internamente, na função \texttt{scather()}, o processo com \textit{rank} 0 é o
+responsável por dividir o vetor de entrada entre os processos. No exemplo, os
+quatro primeiros números são atribuídos a P0 e os quatro últimos a P1. Então,
+todos os processos chamam a função \texttt{reduce\_sumtree()}. Essa função
+verifica que a quantidade de elementos é maior que um e decide, portanto, que os
+processos devem realizar reduções intermediárias.  Assim, ambos P0 e P1 trocam
+metade de seus números entre si (via \texttt{MPI\_Send()} e
+\texttt{MPI\_Recv()}) e executam somas locais. Por fim, a função
+\texttt{reduce\_sumtree()} é chamada recursivamente até que a quantidade de
+elementos seja igual um. Nesse caso, \texttt{reduce()} é chamada.
+
+As seções a seguir descrevem em detalhes os artefatos de \textit{software} que
+foram desenvolvidos durante este trabalho, o processo de geração do arquivo de
+dados, as duas versões de função de espalhamento que foram implementadas e as
+técnicas utilizadas para medir os tempos de execução da aplicação, evitar
+\textit{deadlocks} e evitar problemas relacionados a \emph{estouros de pilha}.
 
 \subsection{Artefatos Desenvolvidos}
-O programa desenvolvido possui duas funcionalidades principais: (i) geração de
+O programa C desenvolvido possui duas funcionalidades principais: (i) geração de
 um arquivo de dados contendo um número arbitrário de valores de ponto-flutuante;
 (ii) e processamento de um arquivo de dados retornando a soma dos elementos e o
-tempo de execução do algoritmo. Além do programa principal, foram desenvolvidos
-dois \textit{scripts bash}: um para facilitar a execução do programa principal,
-encapsulando a chamada ao \texttt{mpiexec} (ou \texttt{mpirun}), e outro para
-automatizar os testes da aplicação. Esses artefatos são descritos a seguir.
+tempo de execução do algoritmo. Além do programa principal (\texttt{main.c}),
+foram desenvolvidos dois \textit{scripts bash}: um para facilitar a execução do
+programa principal (\texttt{run.sh}), encapsulando a chamada ao \texttt{mpiexec}
+(ou \texttt{mpirun}), e outro para automatizar os testes da aplicação
+(\texttt{test.sh}). Esses artefatos são descritos a seguir.
 
 \begin{itemize}
     \item \texttt{main.c}: programa em C contendo o código-fonte da aplicação.
-        Após compilado com o \texttt{mpicc} (vide Makefile), pode ser executado
-        chamando-se o \textit{script} \texttt{run.sh} passando-se o número de
-        processos e o arquivo de dados. O \texttt{run.sh} executará o programa
-        usando o \texttt{mpiexec} e passando esses dois argumentos, que são
+        Após compilado com o \texttt{mpicc} (vide \texttt{Makefile}), pode ser
+        executado com o \textit{script} \texttt{run.sh} passando-se o número de
+        processos e o arquivo de dados. O \texttt{run.sh} executa o programa
+        usando \texttt{mpiexec} e passando esses dois argumentos, que são
         recebidos via \texttt{scanf()}. A saída do programa é uma linha contendo
         dois números: o primeiro representa o resultado da soma dos números de
         ponto-flutuante e o segundo, o tempo de execução do algoritmo de redução
@@ -116,10 +160,10 @@ automatizar os testes da aplicação. Esses artefatos são descritos a seguir.
 \label{sec:data-gen}
 Para a geração de quantidades configuráveis de números de ponto-flutante em um
 formato apropriado para servir de entrada para o programa, pode-se executar o
-binário proveniente do processo de compilação diretamente. Por exemplo, para
-gerar um arquivo de dados, \texttt{numbers.dat}, contendo, por exemplo, 64
-elementos, basta executar o binário passando-se a \textit{flag} \texttt{-gen},
-conforme descrito a seguir:
+binário proveniente do processo de compilação diretamente (sem utilizar
+\texttt{mpiexec}). Por exemplo, para gerar um arquivo de dados
+\texttt{numbers.dat} contendo 64 elementos, basta executar \texttt{sumtree}
+passando-se a \textit{flag} \texttt{-gen}, conforme descrito a seguir:
 
 \begin{lstlisting}[language=bash]
 $ make      # Gera o binário com nome: 'sumtree'.
@@ -131,6 +175,7 @@ aplicação.
 
 
 \subsection{Função de ``Espalhamento''}
+\label{sec:scather-function}
 Para distribuir os dados entre os diferentes processos, foram criadas duas
 funções:
 
@@ -141,26 +186,46 @@ void scather_intercalate(int my_rank, int comm_sz,
     unsigned int *my_count, float **my_nums);
 \end{lstlisting}
 
-Uma sempre pode ser utilizada no lugar da outra sem alterar o resultado final
-(note que a assinatura é a mesma). A única diferença está na política de
-atribuição dos números aos processos. Internamente, o processo com
-\texttt{my\_rank} igual a zero é sempre o responsável por ler o arquivo de dados
-e dividir os números entre os \texttt{comm\_sz} processos, retornando em
-\texttt{my\_count} e \texttt{my\_nums} a quantidade de elementos e os números,
-respectivamente.
+Uma sempre pode ser utilizada no lugar da outra preservando-se a corretude do
+código~\footnote{O resultado final da redução pode ser diferente, dado que a
+operação de soma não é associativa para números de ponto-flutuante nos
+computadores.} (note que a assinatura é a mesma). A única diferença entre as
+duas está na política de atribuição dos números aos processos.  Internamente, o
+processo com \texttt{my\_rank} igual a zero é sempre o responsável por ler o
+arquivo de dados e dividir os números entre os \texttt{comm\_sz} processos,
+retornando em \texttt{my\_count} e \texttt{my\_nums} a quantidade de elementos e
+os números, respectivamente.
 
-No caso da \texttt{scather}, a quantidade total de números (lida do arquivo de
+No caso da \texttt{scather()}, a quantidade total de números (lida do arquivo de
 entrada) é dividida pelo número de processos (\texttt{comm\_sz}) e o resultado
 (\texttt{res}) obtido é utilizado para atribuir sequencialmente os números aos
 processos, ou seja, o processo 0 recebe os números indexados pelo intervalo $[0,
 res - 1]$, o processo 1 recebe $[res, 2 \times res - 1]$, e assim por diante.
 
-Por outro lado, a \texttt{scather\_intercalate} intercala os números entre os
+Por outro lado, a \texttt{scather\_intercalate()} intercala os números entre os
 processos, varrendo o vetor e atribuindo o elemento no índice $i$ ao processo $i
 \bmod comm\_sz$. 
 
 
+\subsection{Medindo o Tempo de Execução}
+Para medir o tempo máximo de execução da aplicação de forma precisa, utilizou-se
+\emph{barreiras}. Com uma chamada à função \texttt{MPI\_Barrier()} antes de
+\texttt{reduce\_sumtree()}, garante-se que todos os processos começam a executar
+o algoritmo de redução ``ao mesmo tempo''. Com outra chamada à função
+\texttt{MPI\_Barrier()} após a chamada à \texttt{reduce\_sumtree()} é possível
+sincronizar todos os processos no ponto de término da execução do algoritmo.
+Dessa forma, coletando-se os tempos do ``relógio de parede'' no processo 0
+imediatamente após as barreiras, é possível calcular o tempo total de execução
+da aplicação.
+
+Utilizou-se a função \texttt{gettimeofday()} (disponível em
+``\texttt{sys/time.h}'') para se obter os tempos de início e término e
+calculou-se usando aritmética simples o intervalo de tempo de execução em
+milisegundos.
+
+
 \subsection{Evitando \textit{Deadlocks}}
+\label{sec:avoiding-deadlocks}
 Na implementação do MPI utilizada, ambas as primitivas \texttt{Send()} e
 \texttt{Recv()} são ``blocantes''. Isso significa que cuidado adicional deve ser
 tomado para que não ocorram \textit{deadlocks}. O trecho de
@@ -198,25 +263,52 @@ if (my_rank % 2 == 0) {
 \end{lstlisting}
 \end{minipage}
 
-Se as primitivas \texttt{MPI\_Recv()} e \texttt{MPI\_Send()} aparecerem na mesma
-ordem no \texttt{if} e no \texttt{else}, os processos entrarão em
+Se as primitivas \texttt{MPI\_Recv()} e \texttt{MPI\_Send()} aparecem na mesma
+ordem no \texttt{if} e no \texttt{else}, os processos entram em
 \textit{deadlock}. Ao colocá-los de forma alternada, garante-se que para cada
-\texttt{MPI\_Send()} existirá um \texttt{MPI\_Recv()} e vice-versa.
+\texttt{MPI\_Send()} sempre existirá um \texttt{MPI\_Recv()} e vice-versa.
 
-\section{Medida de Tempo de Execução}
-Para medir o tempo máximo de execução da aplicação de forma precisa, utilizou-se
-\emph{barreiras}. Com uma chamada à função \texttt{MPI\_Barrier()} antes de
-\texttt{reduce\_sumtree()}, garante-se que todos os processos começam a executar
-o algoritmo de redução ``ao mesmo tempo''. Com outra chamada à função
-\texttt{MPI\_Barrier()} após a chamada à \texttt{reduce\_sumtree()} é possível
-sincronizar todos os processos no ponto de término da execução do algoritmo.
-Dessa forma, coletando os tempos (``relógio de parede'') no processo 0
-imediatamente após as barreiras, é possível calcular o tempo total de execução
-da aplicação.
 
-Utilizou-se a função \texttt{gettimeofday()} (disponível em
-``\texttt{sys/time.h}'') para se obter os tempos de início e término e
-aritmética simples para se obter o intervalo de execução em milisegundos.
+\subsection{Evitando ``Estouro de Pilha''}
+O padrão C99 permite a declaração de variáveis de forma intercalada com as
+instruções. Dessa forma, é possível, por exemplo, ler um número inteiro
+\texttt{n} via \texttt{scanf()} e logo em seguida declarar um vetor de tamanho
+\texttt{n}. Apesar desse recurso ser bastante útil, permitindo um controle mais
+granular do escopo das variáveis e aumentando consideravelmente a legibilidade
+do código, ele pode levar a comportamentos inesperados. Isso ocorre porque essas
+variáveis são alocadas no seguimento de pilha, cujo tamanho máximo pode variar
+entre diferentes sistemas operacionais. Diante disso, existem duas abordagens
+possíveis para contornar o problema:
+
+\begin{enumerate}
+    \item Forçar um tamanho de pilha maior que o padrão. Existem duas formas de
+    se fazer isso: (i) modificando o tamanho padrão alocado pelo sistema
+    operacional --- no Mac OS X isso pode ser feito de forma global (por sessão
+    no \textit{shell}) com o comando \texttt{ulimit -s hard}; ou (ii) instruindo
+    o \textit{linker} durante a compilação (\texttt{gcc
+    -Wl,-stack\_size,<stack\_size> \ldots}). A opção (ii) é mais extensível. 
+    \item Alocar a memória dinamicamente no \textit{heap} (via
+    \texttt{malloc()}), cujo limite é determinado pelo tamanho da memória
+    virtual do sistema.
+\end{enumerate}
+
+Apesar da alocação no \textit{heap} ser um pouco mais lenta do que a alocação na
+pilha, optou-se por essa abordagem nas partes do programa que poderiam causar
+estouro de pilha, como por exemplo na função \texttt{read\_data()}. Essa função,
+apresentada a seguir, é utilizada internamente nas funções \texttt{scather()} e
+\texttt{scather\_intercalate()} para retornar um ponteiro para o vetor de
+\texttt{float}s que será atribuído a cada processo e sua respectiva quantidade
+de elementos:
+
+\begin{lstlisting}[style=c, numbers=none]
+void read_data(unsigned int *count, float **nums) {
+	scanf("%u", count);  // Get numbers count.
+	(*nums) = (float *) malloc((*count) * sizeof(float));
+	for (unsigned int i = 0; i < (*count); i++) {
+		scanf("%f", (*nums) + i); 
+	}
+}
+\end{lstlisting}
 
 \section{Resultados}
 \label{sec:resultados}
@@ -237,10 +329,27 @@ de execução.  Em poucas palavras, tem-se 2 arquivos para cada número de
 processos contendo as duas saídas do programa: o valor estimado da soma e o
 tempo de execução do algoritmo.
 
-As seções a seguir apresentam os resultados dos testes, apresentando métricas de
-\textit{speedup}, eficiência e escalabilidade. Os resultados são apresentados
-sob a forma de gráficos. As tabelas com os dados exatos que deram origem a esses
-gráficos estão anexadas ao final do documento.
+As seções a seguir apresentam o \textit{hardware} utilizado e os resultados dos
+testes, apresentando métricas de \textit{speedup}, eficiência e escalabilidade.
+Os resultados são apresentados sob a forma de gráficos. As tabelas com os dados
+exatos que deram origem a esses gráficos estão anexadas ao final do documento.
+
+
+\subsection{\textit{Hardware} Utilizado}
+\label{sec:hardware}
+
+\begin{itemize}
+    \item Processador: AMD FX(tm)-8350 Eight-Core Processor
+    \item Velocidade por \textit{core}: 1406.2 MHz
+    \item Número de processadores: 1
+    \item Número de \textit{cores}: 8 (máx. 8)
+    \item Número de \textit{threads}: 8 (máx. 8)
+    \item L1 Data cache: 8 x 16 KBytes, 4-way set associative, 64-byte line size
+    \item L1 Instruction cache: 4 x 64 KBytes, 2-way set associative, 64-byte line size
+    \item L2 cache: 4 x 2048 KBytes, 16-way set associative, 64-byte line size
+    \item L3 cache: 8 MBytes, 64-way set associative, 64-byte line size
+\end{itemize}
+
 
 \subsection{\textit{Speedup}}
 \begin{figure}[h!]
@@ -276,8 +385,12 @@ processos e a quantidade de elementos somados na redução.}
 
 A Figura~\ref{fig:efficiency} apresenta um gráfico em que cada curva relaciona a
 \textit{eficiência} obtida, o número de processos criados e a quantidade de
-elementos somados na redução. De uma forma geral, observa-se que a
-\textit{eficiência} \emph{diminui} conforme a quantidade de processos cresce.
+elementos somados na redução. Observa-se que a \textit{eficiência}
+\emph{diminui} drasticamente ao se utilizar dois processos ao invés de um. A
+partir daí, a eficiência continua diminuindo conforme a quantidade de processos
+cresce. A taxa de queda é um pouco mais sútil quando comparada à de um processo
+para dois, porém continua significativa, evidenciando que a eficiência da
+aplicação tende a ser muito ruim com um número de processos grande.
 
 \subsection{Escalabilidade}
 
@@ -290,10 +403,10 @@ De forma similar, não se tem também uma boa \emph{escalabilidade fraca},
 conforme apresentado na Figura~\ref{fig:weak-scalability}, que relaciona a
 eficiência, o número de processos, e a quantidade de elementos somados na
 redução. Não está explícito no gráfico, mas para cada número de processos
-obteve-se o valor da eficiência de acordo incrementando-se proporcionalmente o
-tamanho do problema (ou número de elementos a serem somados). Sendo assim, para
-1 processo, utilizou-se $2^20$ elementos; para 2 processos, $2^21$ elementos;
-para 4 processos, $2^22$ elementos; e assim por diante.
+obteve-se o valor da eficiência incrementando-se proporcionalmente o tamanho do
+problema (ou número de elementos a serem somados). Sendo assim, para 1 processo,
+utilizou-se $2^{20}$ elementos; para 2 processos, $2^{21}$ elementos; para 4
+processos, $2^{22}$ elementos; e assim por diante.
 
 \begin{figure}[h!]
 \centering
@@ -303,18 +416,23 @@ processos, aumentando-se proporcionalmente o tamanho do problema.}
 \label{fig:weak-scalability}
 \end{figure}
 
-
+\pagebreak
 \section{Conclusão}
 Este trabalho possibilitou uma maior compreensão acerca de modelos de
 programação baseados em trocas de mensagem, em particular, que utilizam
 primitivas \texttt{Send()} e \texttt{Recv()}, através da implementação de uma
 árvore de redução de soma usando MPI\@.
 
-O algoritmo desenvolvido possibilita a simulação de reduções usando um número
-grande de processos, utilizando as primitivas citadas anteriormente para
-realizar somas intermediárias até chegar na redução a partir de uma \emph{Sum
-Tree}. Uma análise dos tempos de execução do algoritmo evidenciou ganhos de
-desempenho (\textit{speedup}) de até 252\% em relação à versão sequencial.
+O algoritmo desenvolvido possibilita a execução de reduções usando um número
+grande de elementos, utilizando as primitivas citadas anteriormente para
+realizar somas intermediárias até que cada processo tenha um elemento (vide
+Seção~\ref{sec:algorithm}). Nesse momento, uma última redução é realizada
+utilizando-se o algoritmo Sum Tree. Uma análise de desempenho da aplicação
+evidenciou um crescimento no \textit{speedup} na medida em que a quantidade de
+processos cresce, apresentando um valor máximo de 2.50 ao se utilizar 8
+processos para somar $2^{20}$ elementos. No entanto, a eficiência e a
+escalabilidade apresentaram taxas de decaimento significativas com o aumento da
+quantidade de processos, revelando limitações na aplicação.
 
 Por fim, é válido ressaltar que o o \textit{design} da aplicação (incluindo o
 \textit{script} \texttt{test.sh}) permite variar de forma fácil as condições de

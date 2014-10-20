@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.10.21)  19 OCT 2014 19:41
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.10.21)  20 OCT 2014 02:49
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -819,7 +819,7 @@ LaTeX Info: Redefining \nameref on input line 47.
 
 \c@lstlisting=\count135
  (./cover.tex
-<img/unb_logo.jpg, id=56, 4170.58125pt x 355.3275pt>
+<img/unb_logo.jpg, id=60, 4170.58125pt x 355.3275pt>
 File: img/unb_logo.jpg Graphic file (type jpg)
  <use img/unb_logo.jpg>
 Package pdftex.def Info: img/unb_logo.jpg used on input line 5.
@@ -844,44 +844,57 @@ Package babel Info: Redefining portuges shorthand "|
 nb_logo.jpg>])
 Package babel Info: Redefining portuges shorthand "|
 (babel)             in language  on input line 51.
-LaTeX Font Info:    Try loading font information for T1+fvm on input line 63.
+LaTeX Font Info:    Try loading font information for T1+fvm on input line 59.
  (/usr/local/texlive/2013/texmf-dist/tex/latex/bera/t1fvm.fd
 File: t1fvm.fd 2004/09/07 scalable font definitions for T1/fvm.
 )
 LaTeX Font Info:    Font shape `T1/fvm/m/n' will be
-(Font)              scaled to size 8.00003pt on input line 63.
+(Font)              scaled to size 8.00003pt on input line 59.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 65.
-Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 81.
-Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 84.
+(babel)             in language  on input line 75.
 LaTeX Font Info:    Font shape `T1/fvm/m/n' will be
-(Font)              scaled to size 9.60004pt on input line 90.
+(Font)              scaled to size 9.60004pt on input line 85.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 92.
+(babel)             in language  on input line 95.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 92.
+(babel)             in language  on input line 95.
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.92 
-      [1]
+l.95 
+      [1] <img/algorithm_yed.pdf, id=97, 949.5475pt x 798.985pt>
+File: img/algorithm_yed.pdf Graphic file (type pdf)
+
+<use img/algorithm_yed.pdf>
+Package pdftex.def Info: img/algorithm_yed.pdf used on input line 98.
+(pdftex.def)             Requested size: 390.0pt x 328.15897pt.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 116.
- (/usr/local/texlive/2013/texmf-dist/tex/latex/listings/lstlang1.sty
+(babel)             in language  on input line 120.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 120.
+ [2 <./img/algorithm_yed.pdf>]
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 127.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 159.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 167.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 167.
+ [3]
+(/usr/local/texlive/2013/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2004/09/05 1.3 listings language file
 )
 (/usr/local/texlive/2013/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2004/09/05 1.3 listings language file
 )
 LaTeX Font Info:    Font shape `T1/fvm/m/it' in size <12> not available
-(Font)              Font shape `T1/fvm/m/sl' tried instead on input line 126.
+(Font)              Font shape `T1/fvm/m/sl' tried instead on input line 169.
 LaTeX Font Info:    Font shape `T1/fvm/m/sl' will be
-(Font)              scaled to size 9.60004pt on input line 126.
+(Font)              scaled to size 9.60004pt on input line 169.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 134.
+(babel)             in language  on input line 177.
 
 (/usr/local/texlive/2013/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2004/09/05 1.3 listings language file
@@ -889,142 +902,158 @@ File: lstlang1.sty 2004/09/05 1.3 listings language file
 (/usr/local/texlive/2013/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2007/02/22 1.4 (Carsten Heinz)
 )
-Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 138.
-Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 138.
- [2]
 LaTeX Font Info:    Font shape `T1/fvm/bx/n' in size <12> not available
-(Font)              Font shape `T1/fvm/b/n' tried instead on input line 139.
+(Font)              Font shape `T1/fvm/b/n' tried instead on input line 183.
 LaTeX Font Info:    Font shape `T1/fvm/b/n' will be
-(Font)              scaled to size 9.60004pt on input line 139.
+(Font)              scaled to size 9.60004pt on input line 183.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 164.
+(babel)             in language  on input line 210.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 210.
+ [4]
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 210.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 227.
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
-nput line 173.
+nput line 237.
 
-Overfull \hbox (17.62482pt too wide) in paragraph at lines 171--201
+Overfull \hbox (17.62482pt too wide) in paragraph at lines 235--265
 []$[]$ 
  []
 
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 202.
+(babel)             in language  on input line 266.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 202.
-[3]
+(babel)             in language  on input line 266.
+[5]
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 207.
+(babel)             in language  on input line 272.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 217.
+(babel)             in language  on input line 282.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 217.
- [4]
+(babel)             in language  on input line 282.
+ [6]
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 222.
+(babel)             in language  on input line 313.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 246.
- <img/speedup.pdf, id=142, 363.3575pt x 210.7875pt>
+(babel)             in language  on input line 320.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 320.
+ [7]
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 338.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 354.
+ <img/speedup.pdf, id=183, 363.3575pt x 210.7875pt>
 File: img/speedup.pdf Graphic file (type pdf)
 
 <use img/speedup.pdf>
-Package pdftex.def Info: img/speedup.pdf used on input line 249.
+Package pdftex.def Info: img/speedup.pdf used on input line 357.
 (pdftex.def)             Requested size: 363.3566pt x 210.78699pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 263.
+(babel)             in language  on input line 371.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 263.
-[5]
+(babel)             in language  on input line 371.
+[8]
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 268.
- <img/efficiency.pdf, id=150, 363.3575pt x 224.84pt>
+(babel)             in language  on input line 376.
+ <img/efficiency.pdf, id=191, 363.3575pt x 224.84pt>
 File: img/efficiency.pdf Graphic file (type pdf)
 
 <use img/efficiency.pdf>
-Package pdftex.def Info: img/efficiency.pdf used on input line 272.
+Package pdftex.def Info: img/efficiency.pdf used on input line 380.
 (pdftex.def)             Requested size: 363.3566pt x 224.83945pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 283.
+(babel)             in language  on input line 395.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 298.
+(babel)             in language  on input line 401.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 298.
-[6 <./img/speedup.pdf>]
-<img/weak-scalability.pdf, id=196, 363.3575pt x 218.8175pt>
+(babel)             in language  on input line 401.
+[9 <./img/speedup.pdf>]
+<img/weak-scalability.pdf, id=235, 363.3575pt x 218.8175pt>
 File: img/weak-scalability.pdf Graphic file (type pdf)
 
 <use img/weak-scalability.pdf>
-Package pdftex.def Info: img/weak-scalability.pdf used on input line 301.
+Package pdftex.def Info: img/weak-scalability.pdf used on input line 413.
 (pdftex.def)             Requested size: 363.3566pt x 218.81696pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 308.
+(babel)             in language  on input line 420.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 324.
+(babel)             in language  on input line 420.
+[10 <./img/efficiency.pdf>]
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 324.
-[7 <./img/efficiency.pdf>] (./report.bbl)
+(babel)             in language  on input line 420.
+ (./report.bbl
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 330.
+(babel)             in language  on input line 8.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 330.
- [8 <./img/weak-scalability.pdf>]
-<./img/bench-tables.pdf, id=259, page=1, 597.23125pt x 845.1575pt>
+(babel)             in language  on input line 8.
+ [11 <./img/weak-scalability.pdf>])
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 447.
+Package babel Info: Redefining portuges shorthand "|
+(babel)             in language  on input line 447.
+
+[12] <./img/bench-tables.pdf, id=305, page=1, 597.23125pt x 845.1575pt>
 File: ./img/bench-tables.pdf Graphic file (type pdf)
 
 <use ./img/bench-tables.pdf, page 1>
-Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 330.
+Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 447.
 (pdftex.def)             Requested size: 597.22978pt x 845.15544pt.
 File: ./img/bench-tables.pdf Graphic file (type pdf)
  <use ./img/bench-tables.pdf, page 1>
-Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 330.
+Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 447.
 (pdftex.def)             Requested size: 597.22978pt x 845.15544pt.
 File: ./img/bench-tables.pdf Graphic file (type pdf)
 
 <use ./img/bench-tables.pdf, page 1>
-Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 330.
+Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 447.
 (pdftex.def)             Requested size: 597.22978pt x 845.15544pt.
 File: ./img/bench-tables.pdf Graphic file (type pdf)
  <use ./img/bench-tables.pdf, page 1>
-Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 330.
+Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 447.
 (pdftex.def)             Requested size: 597.22978pt x 845.15544pt.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 330.
+(babel)             in language  on input line 447.
 Package babel Info: Redefining portuges shorthand "|
-(babel)             in language  on input line 330.
+(babel)             in language  on input line 447.
 File: ./img/bench-tables.pdf Graphic file (type pdf)
 
 <use ./img/bench-tables.pdf, page 1>
-Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 330.
+Package pdftex.def Info: ./img/bench-tables.pdf, page1 used on input line 447.
 (pdftex.def)             Requested size: 597.22978pt x 845.15544pt.
- [9 <./img/bench-tables.pdf>]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 333.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 333.
- (./report.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 333.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 333.
+ [13 <./img/bench-tables.pdf>]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 450.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 450.
+
+(./report.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 450.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 450.
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: F6A25ABE936F3A4CB0F191024CD61BC4;811.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 333.
+(rerunfilecheck)             Checksum: 7C3EA828A2CBB90445658A4F5E2D1EB8;904.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 450.
  ) 
 Here is how much of TeX's memory you used:
- 10644 strings out of 493315
- 147642 string characters out of 6137903
- 456016 words of memory out of 5000000
- 13821 multiletter control sequences out of 15000+600000
+ 10686 strings out of 493315
+ 148213 string characters out of 6137903
+ 441420 words of memory out of 5000000
+ 13843 multiletter control sequences out of 15000+600000
  27637 words of font info for 70 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
- 40i,19n,58p,305b,1241s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 40i,19n,58p,306b,1241s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2013/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}
 {/usr/local/texlive/2013/texmf-dist/fonts/enc/dvips/base/8r.enc}{/usr/local/tex
 live/2013/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/local/texl
@@ -1054,10 +1083,10 @@ b></usr/local/texlive/2013/texmf-dist/fonts/type1/public/cm-super/sfti1000.pfb>
 usr/local/texlive/2013/texmf-dist/fonts/type1/public/cm-super/sfti1440.pfb>
 
 pdfTeX warning: pdflatex: no GlyphToUnicode entry has been inserted yet!
-Output written on report.pdf (10 pages, 927611 bytes).
+Output written on report.pdf (14 pages, 966978 bytes).
 PDF statistics:
- 392 PDF objects out of 1000 (max. 8388607)
- 317 compressed objects within 4 object streams
- 65 named destinations out of 1000 (max. 500000)
- 140 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 441 PDF objects out of 1000 (max. 8388607)
+ 361 compressed objects within 4 object streams
+ 84 named destinations out of 1000 (max. 500000)
+ 153 words of extra memory for PDF output out of 10000 (max. 10000000)
 

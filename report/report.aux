@@ -22,30 +22,39 @@
 \@writefile{lof}{\select@language{brazil}}
 \@writefile{lot}{\select@language{brazil}}
 \citation{exercise}
+\citation{class-notes}
+\citation{exercise}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introdu\IeC {\c c}\IeC {\~a}o}{1}{section.1}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}\textit  {Hardware} Utilizado}{1}{subsection.1.1}}
-\newlabel{sec:hardware}{{1.1}{1}{\textit {Hardware} Utilizado}{subsection.1.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {2}O Algoritmo}{1}{section.2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Artefatos Desenvolvidos}{1}{subsection.2.1}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Gera\IeC {\c c}\IeC {\~a}o do Arquivo de Dados}{2}{subsection.2.2}}
-\newlabel{sec:data-gen}{{2.2}{2}{Geração do Arquivo de Dados}{subsection.2.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Fun\IeC {\c c}\IeC {\~a}o de ``Espalhamento''}{3}{subsection.2.3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Evitando \textit  {Deadlocks}}{3}{subsection.2.4}}
-\newlabel{code:deadlock}{{1}{4}{Ordem das primitivas MPI\_Send() e MPI\_Recv() na função \texttt {reduce\_sumtree()}}{lstlisting.1}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}Ordem das primitivas MPI\_Send() e MPI\_Recv() na fun\IeC {\c c}\IeC {\~a}o \texttt  {reduce\_sumtree()}.}{4}{lstlisting.1}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Medida de Tempo de Execu\IeC {\c c}\IeC {\~a}o}{5}{section.3}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Resultados}{5}{section.4}}
-\newlabel{sec:resultados}{{4}{5}{Resultados}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}\textit  {Speedup}}{5}{subsection.4.1}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Gr\IeC {\'a}fico apresentando a rela\IeC {\c c}\IeC {\~a}o entre o \textit  {speedup}, o n\IeC {\'u}mero de processos e a quantidade de elementos somados na redu\IeC {\c c}\IeC {\~a}o.}}{6}{figure.1}}
-\newlabel{fig:speedup}{{1}{6}{Gráfico apresentando a relação entre o \textit {speedup}, o número de processos e a quantidade de elementos somados na redução}{figure.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Efici\IeC {\^e}ncia}{6}{subsection.4.2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Escalabilidade}{6}{subsection.4.3}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Gr\IeC {\'a}fico apresentando a rela\IeC {\c c}\IeC {\~a}o entre o \textit  {speedup}, o n\IeC {\'u}mero de processos e a quantidade de elementos somados na redu\IeC {\c c}\IeC {\~a}o.}}{7}{figure.2}}
-\newlabel{fig:efficiency}{{2}{7}{Gráfico apresentando a relação entre o \textit {speedup}, o número de processos e a quantidade de elementos somados na redução}{figure.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Conclus\IeC {\~a}o}{7}{section.5}}
+\newlabel{sec:algorithm}{{2}{1}{O Algoritmo}{section.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Exemplo de uso do algoritmo utilizado para fazer as redu\IeC {\c c}\IeC {\~o}es intermedi\IeC {\'a}rias usando 8 n\IeC {\'u}meros e 2 processos.}}{2}{figure.1}}
+\newlabel{fig:algorithm}{{1}{2}{Exemplo de uso do algoritmo utilizado para fazer as reduções intermediárias usando 8 números e 2 processos}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Artefatos Desenvolvidos}{3}{subsection.2.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Gera\IeC {\c c}\IeC {\~a}o do Arquivo de Dados}{4}{subsection.2.2}}
+\newlabel{sec:data-gen}{{2.2}{4}{Geração do Arquivo de Dados}{subsection.2.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Fun\IeC {\c c}\IeC {\~a}o de ``Espalhamento''}{4}{subsection.2.3}}
+\newlabel{sec:scather-function}{{2.3}{4}{Função de ``Espalhamento''}{subsection.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Medindo o Tempo de Execu\IeC {\c c}\IeC {\~a}o}{5}{subsection.2.4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Evitando \textit  {Deadlocks}}{5}{subsection.2.5}}
+\newlabel{sec:avoiding-deadlocks}{{2.5}{5}{Evitando \textit {Deadlocks}}{subsection.2.5}{}}
+\newlabel{code:deadlock}{{1}{6}{Ordem das primitivas MPI\_Send() e MPI\_Recv() na função \texttt {reduce\_sumtree()}}{lstlisting.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}Ordem das primitivas MPI\_Send() e MPI\_Recv() na fun\IeC {\c c}\IeC {\~a}o \texttt  {reduce\_sumtree()}.}{6}{lstlisting.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}Evitando ``Estouro de Pilha''}{7}{subsection.2.6}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Resultados}{7}{section.3}}
+\newlabel{sec:resultados}{{3}{7}{Resultados}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}\textit  {Hardware} Utilizado}{8}{subsection.3.1}}
+\newlabel{sec:hardware}{{3.1}{8}{\textit {Hardware} Utilizado}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}\textit  {Speedup}}{8}{subsection.3.2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Gr\IeC {\'a}fico apresentando a rela\IeC {\c c}\IeC {\~a}o entre o \textit  {speedup}, o n\IeC {\'u}mero de processos e a quantidade de elementos somados na redu\IeC {\c c}\IeC {\~a}o.}}{9}{figure.2}}
+\newlabel{fig:speedup}{{2}{9}{Gráfico apresentando a relação entre o \textit {speedup}, o número de processos e a quantidade de elementos somados na redução}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Efici\IeC {\^e}ncia}{9}{subsection.3.3}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Gr\IeC {\'a}fico apresentando a rela\IeC {\c c}\IeC {\~a}o entre o \textit  {speedup}, o n\IeC {\'u}mero de processos e a quantidade de elementos somados na redu\IeC {\c c}\IeC {\~a}o.}}{10}{figure.3}}
+\newlabel{fig:efficiency}{{3}{10}{Gráfico apresentando a relação entre o \textit {speedup}, o número de processos e a quantidade de elementos somados na redução}{figure.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Escalabilidade}{10}{subsection.3.4}}
 \bibstyle{plain}
 \bibdata{references.bib}
 \bibcite{exercise}{1}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Gr\IeC {\'a}fico apresentando a rela\IeC {\c c}\IeC {\~a}o entre a efici\IeC {\^e}ncia e o n\IeC {\'u}mero de processos, aumentando-se proporcionalmente o tamanho do problema.}}{8}{figure.3}}
-\newlabel{fig:weak-scalability}{{3}{8}{Gráfico apresentando a relação entre a eficiência e o número de processos, aumentando-se proporcionalmente o tamanho do problema}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Gr\IeC {\'a}fico apresentando a rela\IeC {\c c}\IeC {\~a}o entre a efici\IeC {\^e}ncia e o n\IeC {\'u}mero de processos, aumentando-se proporcionalmente o tamanho do problema.}}{11}{figure.4}}
+\newlabel{fig:weak-scalability}{{4}{11}{Gráfico apresentando a relação entre a eficiência e o número de processos, aumentando-se proporcionalmente o tamanho do problema}{figure.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Conclus\IeC {\~a}o}{11}{section.4}}
+\bibcite{class-notes}{2}
