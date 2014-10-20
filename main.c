@@ -312,6 +312,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+
     // Get input (scather).
     scather(my_rank, comm_sz, &my_count, &my_nums);
 
@@ -344,10 +345,14 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    // Reduce.
+    MPI_Barrier(MPI_COMM_WORLD);
+
     struct timeval start, end;
-    // Start
-    gettimeofday(&start, NULL);
+
+    if (my_rank == 0) {
+        // Start
+        gettimeofday(&start, NULL);
+    }
 
     float sum = 0.0f;
 
@@ -360,25 +365,16 @@ int main(int argc, char *argv[]) {
 
     free(my_nums);
 
-    // End
-    gettimeofday(&end, NULL);
-    // Elapsed time in ms.
-    ulli seconds  = end.tv_sec - start.tv_sec;
-    ulli useconds = end.tv_usec - start.tv_usec; 
-    // '+ 0.5' is a technique for rounding positive values (like ceil() would do).
-    ulli elapsed_ms = (ulli) (seconds * 1000.0 + useconds / 1000.0 + 0.5);
-
     if (my_rank == 0) {
-        ulli max_time = elapsed_ms;
-        ulli his_elapsed;
-        for (int i = 1; i < comm_sz; i++) {
-            MPI_Recv(&his_elapsed, 1, MPI_UNSIGNED_LONG_LONG, i, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            if (his_elapsed > max_time)
-                max_time = his_elapsed;
-        }
-        printf("%.2f %llu\n", sum, max_time);
-    } else {
-        MPI_Send(&elapsed_ms, 1, MPI_UNSIGNED_LONG_LONG, 0, 4, MPI_COMM_WORLD);
+        // End
+        gettimeofday(&end, NULL);
+        // Elapsed time in ms.
+        ulli seconds  = end.tv_sec - start.tv_sec;
+        ulli useconds = end.tv_usec - start.tv_usec; 
+        // '+ 0.5' is a technique for rounding positive values (like ceil() would do).
+        ulli elapsed_ms = (ulli) (seconds * 1000.0 + useconds / 1000.0 + 0.5);
+
+        printf("%.2f %llu\n", sum, elapsed_ms);
     }
 
     MPI_Finalize();

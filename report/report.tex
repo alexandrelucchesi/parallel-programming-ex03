@@ -211,12 +211,9 @@ processos, varrendo o vetor e atribuindo o elemento no índice $i$ ao processo $
 Para medir o tempo máximo de execução da aplicação de forma precisa, utilizou-se
 \emph{barreiras}. Com uma chamada à função \texttt{MPI\_Barrier()} antes de
 \texttt{reduce\_sumtree()}, garante-se que todos os processos começam a executar
-o algoritmo de redução ``ao mesmo tempo''. Com outra chamada à função
-\texttt{MPI\_Barrier()} após a chamada à \texttt{reduce\_sumtree()} é possível
-sincronizar todos os processos no ponto de término da execução do algoritmo.
-Dessa forma, coletando-se os tempos do ``relógio de parede'' no processo 0
-imediatamente após as barreiras, é possível calcular o tempo total de execução
-da aplicação.
+o algoritmo de redução ``ao mesmo tempo''. Dessa forma, coletando-se os tempos
+do ``relógio de parede'' no processo 0 imediatamente após a barreira, é possível
+calcular o tempo total de execução da aplicação.
 
 Utilizou-se a função \texttt{gettimeofday()} (disponível em
 ``\texttt{sys/time.h}'') para se obter os tempos de início e término e
